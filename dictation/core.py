@@ -83,6 +83,8 @@ class Engine:
 
     def _start(self, device):
         self.close()
+        if self.stopping:
+            raise RuntimeError("Dictation is shutting down.")
         env = dict(os.environ, HF_HUB_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1")
         self.process = subprocess.Popen(
             [sys.executable, "-u", "-m", "dictation.worker", device, json.dumps(self.config.__dict__)],

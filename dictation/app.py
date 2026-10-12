@@ -199,7 +199,13 @@ class App:
         if self.state in ("recording", "working"):
             return
         self.idle_deadline = 0
-        self.submit(self.engine.close, lambda *_: self.set_state("idle", "Model unloaded — ready"))
+        self.submit(self.engine.close, self.unloaded)
+
+    def unloaded(self, *_):
+        # A click may start a fresh recording while the unload task completes.
+        if self.state not in ("recording", "working"):
+            self.set_state("idle", "Model unloaded — ready")
+        return False
 
     def tick(self):
         if self.closed:
