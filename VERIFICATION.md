@@ -2,6 +2,8 @@
 
 Implementation is local to this project. Old Tessera remains unchanged. Its donor path is `scripts/local-whisper-stt.py` and the `/api/stt` local-Whisper branch: faster-whisper, cached medium model, beam size 5, VAD, CPU int8 and CUDA error fallback.
 
+Fresh read-only hardware inspection confirmed Intel i7-13700K / 24 threads, 62 GiB RAM, RTX 3080 / 10240 MiB VRAM / compute capability 8.6, NVIDIA driver 595.99.02 and Linux kernel 7.0.0-38-generic. Transient utilization was not promoted to a durable hardware specification.
+
 ## Model and lifecycle evidence
 
 The public OpenAI Whisper `tests/jfk.flac` fixture is 11.0 seconds. With this project's locked environment and existing Tessera model cache, the actual RTX 3080 CUDA worker correctly transcribed the expected phrase in 2.75 seconds including worker startup. Free VRAM was 8993 MiB before, 7759 MiB with the model loaded, and 8993 MiB after worker exit. A configured admission threshold above available VRAM selected CPU and correctly transcribed the same file in 4.07 seconds. These are single-fixture observations, not general speed guarantees. Both were headless project-native checks; no host window/app/listener was started.
