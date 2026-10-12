@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+dictation_script="$(readlink -f "${BASH_SOURCE[0]}")"
+dictation_root="$(cd "$(dirname "$dictation_script")/.." && pwd)"
+cd "$dictation_root"
+dictation_libs="$("$dictation_root/.venv/bin/python" -c 'import sysconfig; from pathlib import Path; print(":".join(str(p) for p in (Path(sysconfig.get_paths()["purelib"])/"nvidia").glob("*/lib")))')"
+export LD_LIBRARY_PATH="$dictation_libs${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export HF_HUB_OFFLINE=1 HF_HUB_DISABLE_TELEMETRY=1
+exec "$dictation_root/.venv/bin/python" -m dictation.app "$@"

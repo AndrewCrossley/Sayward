@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.pytest_cache/
+graphify-out/
+evidence/
+*.wav
+!sounds/*.wav

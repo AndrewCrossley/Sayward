@@ -1,0 +1,21 @@
+[project]
+name = "system-dictation"
+version = "0.1.0"
+description = "Private mouse-toggle Whisper dictation for Cinnamon X11"
+requires-python = ">=3.12"
+dependencies = [
+  "faster-whisper==1.2.1",
+  # PyAV 19 removed metadata_errors; faster-whisper 1.2.1 still passes it.
+  "av==16.0.1",
+  "numpy>=2,<3",
+  "sounddevice==0.5.2",
+  "python-xlib==0.33",
+  "nvidia-cublas-cu12>=12,<13",
+  "nvidia-cudnn-cu12>=9,<10",
+]
+
+[dependency-groups]
+dev = ["pytest>=8,<10"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
