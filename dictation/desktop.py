@@ -51,6 +51,9 @@ class Desktop:
         insert = self.display.keysym_to_keycode(XK.string_to_keysym("Insert"))
         if not shift or not insert:
             raise RuntimeError("The keyboard has no Shift/Insert mapping; result is on the clipboard.")
+        # Clipboard managers can take time; verify again just before input.
+        if self.focus() != target:
+            raise RuntimeError("Focus changed. Use Paste last result from the tray when ready.")
         xtest.fake_input(self.display, X.KeyPress, shift)
         xtest.fake_input(self.display, X.KeyPress, insert)
         xtest.fake_input(self.display, X.KeyRelease, insert)
