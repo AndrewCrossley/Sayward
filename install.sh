@@ -21,8 +21,23 @@ fi
 if [[ ! -e "$HOME/.config/system-dictation/config.json" ]]; then
     .venv/bin/python -c 'from dictation.core import Config; import json; from pathlib import Path; p=Path.home()/".config/system-dictation/config.json"; p.write_text(json.dumps(Config().__dict__, indent=2)+"\n"); p.chmod(0o600)'
 fi
-# Download only at setup. Recording/transcription are strictly offline.
-.venv/bin/python -c 'from dictation.core import Config; from huggingface_hub import snapshot_download; from pathlib import Path; c=Config.load(Path.home()/".config/system-dictation/config.json"); Path(c.model).is_dir() or snapshot_download("Systran/faster-whisper-"+c.model, cache_dir=c.cache_dir, allow_patterns=["config.json","model.bin","tokenizer.json","vocabulary.*"])'
+# Reuse the existing cached revision; download only if setup needs weights.
+.venv/bin/python - <<'PY'
+from dictation.core import Config
+from huggingface_hub import snapshot_download
+from huggingface_hub.errors import LocalEntryNotFoundError
+from pathlib import Path
+c = Config.load(Path.home()/'.config/system-dictation/config.json')
+if not Path(c.model).is_dir():
+    args = dict(repo_id='Systran/faster-whisper-'+c.model, cache_dir=c.cache_dir,
+                allow_patterns=['config.json','model.bin','tokenizer.json','vocabulary.*'])
+    try:
+        cached = Path(snapshot_download(**args, local_files_only=True))
+        if not all((cached/name).is_file() for name in ['config.json','model.bin','tokenizer.json']):
+            raise LocalEntryNotFoundError('Model cache is incomplete')
+    except LocalEntryNotFoundError:
+        snapshot_download(**args)
+PY
 chmod +x bin/dictation
 ln -sfn "$dictation_root/bin/dictation" "$HOME/.local/bin/system-dictation"
 DICTATION_INSTALL_ROOT="$dictation_root" .venv/bin/python - <<'PY'
