@@ -255,6 +255,7 @@ class App:
         window.connect("destroy", lambda _: setattr(self, "practice_window", None))
         self.practice_window = window
         window.show_all()
+        window.present()
         entry.grab_focus()
 
     def quit(self):

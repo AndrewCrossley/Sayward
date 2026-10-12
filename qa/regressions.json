@@ -1,0 +1,15 @@
+[
+  {
+    "id": "DICT-UNLOAD-001",
+    "title": "Idle unload never resets a newly started recording",
+    "automated": "tests/test_app.py::test_late_idle_unload_does_not_reset_active_operation",
+    "steps": ["Complete or cancel recording", "Start another recording as the idle unload expires", "Observe red recording state", "Stop and observe transcription"],
+    "expected": "The active recording or transcription retains its state when the previous unload completes."
+  },
+  {
+    "id": "DICT-GUIDE-001",
+    "title": "Opening the practice guide brings it above a maximized browser",
+    "steps": ["Focus maximized Firefox", "Use tray > How to use / Practice", "Confirm guide is visible in front", "Close guide using Close guide", "Repeat"],
+    "expected": "Both openings make the guide visible immediately without requiring its taskbar button."
+  }
+]
