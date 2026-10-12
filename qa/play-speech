@@ -1,3 +1,4 @@
 #!/bin/bash
 export XDG_RUNTIME_DIR=/run/user/1000
-exec paplay --device=dictation_test /home/andrew/jfk.flac
+# Use decoded PCM: this VM's libsndfile/paplay misplays the original FLAC.
+exec paplay --device=dictation_test /home/andrew/jfk.wav
