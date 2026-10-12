@@ -9,8 +9,9 @@ import time
 import gi
 
 gi.require_version("Gtk", "3.0")
+gi.require_version("GdkX11", "3.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
-from gi.repository import Gtk, GLib, AyatanaAppIndicator3
+from gi.repository import Gtk, GLib, GdkX11, AyatanaAppIndicator3
 from .core import Config, Engine, Recorder
 from .desktop import Desktop
 
@@ -219,7 +220,8 @@ class App:
 
     def help(self):
         if self.practice_window:
-            self.practice_window.present()
+            stamp = GdkX11.x11_get_server_time(self.practice_window.get_window())
+            self.practice_window.present_with_time(stamp)
             return
         window = Gtk.Window(title="System Dictation — How to use / Practice")
         window.set_default_size(600, 380)
@@ -255,7 +257,10 @@ class App:
         window.connect("destroy", lambda _: setattr(self, "practice_window", None))
         self.practice_window = window
         window.show_all()
-        window.present()
+        # Tray actions arrive over D-Bus without a GTK mouse-event timestamp.
+        # Supply fresh X11 time so Cinnamon accepts this user-requested focus.
+        stamp = GdkX11.x11_get_server_time(window.get_window())
+        window.present_with_time(stamp)
         entry.grab_focus()
 
     def quit(self):
