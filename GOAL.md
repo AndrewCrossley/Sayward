@@ -1,4 +1,6 @@
-# System dictation — active milestone
+# System dictation — implementation verified and frozen
+
+Status: software implementation and isolated qualification complete; live desktop activation and physical microphone/mouse first use are pending Andrew's user-run command under the host protection rule. Keep implementation scope frozen. The operational milestone remains pending that activation, rather than claiming the host was installed.
 
 Goal: Andrew can dictate privately into focused text fields on his Mint Cinnamon X11 desktop using the Back thumb mouse button.
 
@@ -12,3 +14,5 @@ Done when:
 Excluded: Wayland/Windows/macOS, streaming transcription, voice commands, cloud STT, Tessera changes, general automation framework.
 
 Proof: targeted behavior tests, real Whisper fixture transcription, VM mouse-toggle/audio/tray/paste/focus/restart/recovery checks, and source-blind exploratory qualification. Host activation is a user-run command under the host protection rule.
+
+Evidence: `VERIFICATION.md`, 15 passing tests, real RTX 3080 GPU and CPU checks, final source-blind PASS for supported Mint X11 workflows, and actual installer/reboot/removal proof. No new features remain required in this implementation.
