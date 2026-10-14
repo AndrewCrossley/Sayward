@@ -6,18 +6,20 @@ from Xlib.ext import xtest
 
 
 class Desktop:
-    def __init__(self, button):
+    def __init__(self, button, paste_button=9):
         if os.environ.get("XDG_SESSION_TYPE", "x11") != "x11":
             raise RuntimeError("System Dictation currently needs an X11 desktop session.")
         self.display = display.Display()
         self.root = self.display.screen().root
         self.button = button
+        self.buttons = (button, paste_button)
         errors = []
-        self.root.grab_button(
-            button, X.AnyModifier, False, X.ButtonPressMask | X.ButtonReleaseMask,
-            X.GrabModeAsync, X.GrabModeAsync, X.NONE, X.NONE,
-            onerror=lambda err, request: errors.append(err),
-        )
+        for bound in self.buttons:
+            self.root.grab_button(
+                bound, X.AnyModifier, False, X.ButtonPressMask | X.ButtonReleaseMask,
+                X.GrabModeAsync, X.GrabModeAsync, X.NONE, X.NONE,
+                onerror=lambda err, request: errors.append(err),
+            )
         self.display.sync()
         if errors:
             self.display.close()
@@ -28,11 +30,11 @@ class Desktop:
         return getattr(focus, "id", focus)
 
     def events(self):
-        pressed = 0
+        pressed = []
         while self.display.pending_events():
             ev = self.display.next_event()
-            if ev.type == X.ButtonPress and ev.detail == self.button:
-                pressed += 1
+            if ev.type == X.ButtonPress and ev.detail in self.buttons:
+                pressed.append(ev.detail)
         return pressed
 
     def paste(self, text, target):
@@ -61,6 +63,7 @@ class Desktop:
         self.display.sync()
 
     def close(self):
-        self.root.ungrab_button(self.button, X.AnyModifier)
+        for button in self.buttons:
+            self.root.ungrab_button(button, X.AnyModifier)
         self.display.sync()
         self.display.close()

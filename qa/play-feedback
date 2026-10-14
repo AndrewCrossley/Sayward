@@ -1,0 +1,5 @@
+#!/bin/bash
+set -euo pipefail
+export XDG_RUNTIME_DIR=/run/user/1000
+case "${1:-1}" in 1|2|3|4|5|6|soft-1) ;; *) exit 2 ;; esac
+exec paplay --device=dictation_test "$HOME/feedback-fixtures/${1:-1}.wav"

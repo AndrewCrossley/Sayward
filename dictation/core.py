@@ -1,6 +1,7 @@
 """Audio capture and isolated, lazy Whisper worker lifecycle."""
 from dataclasses import dataclass
 import json
+import math
 import os
 from pathlib import Path
 import selectors
@@ -16,6 +17,7 @@ class Config:
     model: str = "medium"
     cache_dir: str = str(Path.home() / ".cache/system-dictation/models")
     button: int = 8
+    paste_button: int = 9
     gpu_min_free_mb: int = 3072
     gpu_running_reserve_mb: int = 512
     threads: int = 12
@@ -27,9 +29,13 @@ class Config:
     @classmethod
     def load(cls, path):
         data = json.loads(Path(path).read_text()) if Path(path).exists() else {}
+        if "paste_button" not in data and data.get("button") == 9:
+            data["paste_button"] = 8
         cfg = cls(**data)
-        if not 6 <= cfg.button <= 32:
+        if not 6 <= cfg.button <= 32 or not 6 <= cfg.paste_button <= 32:
             raise ValueError("Choose an extra mouse button between 6 and 32.")
+        if cfg.button == cfg.paste_button:
+            raise ValueError("Recording and paste need different mouse buttons.")
         if cfg.idle_seconds < 1 or not 1 <= cfg.max_record_seconds <= 600:
             raise ValueError("Invalid idle or recording duration.")
         return cfg
@@ -137,6 +143,40 @@ class Engine:
         return result["text"], self.device
 
 
+def input_level(data):
+    """Normalized RMS meter for signed 16-bit PCM; describes input, not speech."""
+    import numpy as np
+    if not data.size:
+        return 0.0
+    samples = data.astype(np.float32) / 32768.0
+    rms = math.sqrt(float(np.mean(samples * samples)))
+    if rms <= 0:
+        return 0.0
+    return max(0.0, min(1.0, (20 * math.log10(rms) + 60) / 48))
+
+
+class TranscriptHistory:
+    """Five completed transcripts, newest first, never persisted."""
+    def __init__(self):
+        self.items = []
+        self.selected = 0
+
+    @property
+    def text(self):
+        return self.items[self.selected] if self.items else ""
+
+    def add(self, text):
+        text = text.strip()
+        if text:
+            self.items = [text, *self.items][:5]
+            self.selected = 0
+
+    def select(self, index):
+        if not 0 <= index < len(self.items):
+            raise ValueError("This transcript is no longer in the recent history.")
+        self.selected = index
+
+
 class Recorder:
     def __init__(self, config):
         self.config = config
@@ -144,12 +184,20 @@ class Recorder:
         self.chunks = []
         self.frames = 0
         self.problem = None
+        self.level = 0.0
+        self.level_updated_at = self.last_signal = 0.0
 
     def start(self):
         import sounddevice as sd
         self.chunks, self.frames, self.problem = [], 0, None
+        self.level = 0.0
+        self.level_updated_at = self.last_signal = time.monotonic()
 
         def receive(data, frames, timing, status):
+            self.level = input_level(data)
+            self.level_updated_at = time.monotonic()
+            if self.level > 0.08:
+                self.last_signal = self.level_updated_at
             if status:
                 self.problem = "Microphone overflow or interruption. Please record again."
             if self.frames + frames <= self.config.max_record_seconds * 16000:
@@ -192,6 +240,7 @@ class Recorder:
             self.stream.stop()
             self.stream.close()
             self.stream = None
+        self.level = 0.0
 
     def cancel(self):
         self.cancel_stream()

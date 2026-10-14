@@ -12,7 +12,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GdkX11", "3.0")
 gi.require_version("AyatanaAppIndicator3", "0.1")
 from gi.repository import Gtk, GLib, GdkX11, AyatanaAppIndicator3
-from .core import Config, Engine, Recorder
+from .core import Config, Engine, Recorder, TranscriptHistory
 from .desktop import Desktop
 
 
@@ -26,16 +26,21 @@ class App:
         except BlockingIOError:
             raise RuntimeError("System Dictation is already running.")
         self.config = config
-        self.desktop = Desktop(config.button)
+        self.desktop = Desktop(config.button, config.paste_button)
         self.recorder = Recorder(config)
         self.engine = Engine(config)
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.state, self.started = "idle", 0
-        self.last_result, self.target = "", None
+        self.history, self.target = TranscriptHistory(), None
         self.closed = False
         self.idle_deadline = 0
-        self.last_press = 0
+        self.last_press = {}
         self.practice_window = None
+        self.history_window = None
+        self.history_refreshing = False
+        self.meter_level, self.meter_frame = 0.0, None
+        self.recording_message = ""
+        self.meter_message = None
         self.indicator = AyatanaAppIndicator3.Indicator.new(
             "system-dictation", self.icon("idle"), AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS,
         )
@@ -44,8 +49,9 @@ class App:
         self.status_item = self.item("Ready — Back thumb button to record", sensitive=False)
         self.toggle_item = self.item("Start recording", lambda _: self.toggle())
         self.cancel_item = self.item("Cancel recording", lambda _: self.cancel())
-        self.paste_item = self.item("Paste last result", lambda _: GLib.timeout_add(300, self.paste_last))
-        self.item("Copy last result", lambda _: self.copy_last())
+        self.paste_item = self.item("Paste selected transcript (Forward)", lambda _: GLib.timeout_add(300, self.paste_last))
+        self.item("Recent transcripts (last 5)", lambda _: self.open_history())
+        self.item("Copy selected transcript", lambda _: self.copy_last())
         self.item("How to use / Practice", lambda _: self.help())
         sounds = Gtk.CheckMenuItem(label="Sound cues")
         sounds.set_active(config.sound)
@@ -57,6 +63,7 @@ class App:
         self.indicator.set_menu(self.menu)
         self.set_state("idle", "Ready — Back thumb button to record")
         GLib.timeout_add(20, self.poll)
+        GLib.timeout_add(100, self.meter)
         GLib.timeout_add_seconds(1, self.tick)
         for sig in (signal.SIGTERM, signal.SIGINT):
             GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, self.quit)
@@ -76,13 +83,17 @@ class App:
         if self.closed:
             return False
         self.state = state
+        if state == "recording":
+            self.recording_message = message
+            self.meter_frame = None
+            self.meter_message = None
         self.status_item.set_label(message)
         self.indicator.set_icon_full(self.icon(state), message)
         self.indicator.set_title("System Dictation — " + message)
         self.toggle_item.set_label("Stop and transcribe" if state == "recording" else "Start recording")
         self.toggle_item.set_sensitive(state != "working")
         self.cancel_item.set_sensitive(state == "recording")
-        self.paste_item.set_sensitive(bool(self.last_result) and state not in ("recording", "working"))
+        self.paste_item.set_sensitive(bool(self.history.text) and state not in ("recording", "working"))
         if self.practice_window:
             self.practice_status.set_text(message)
             self.practice_toggle.set_label(self.toggle_item.get_label())
@@ -101,11 +112,39 @@ class App:
     def poll(self):
         if self.closed:
             return False
-        for _ in range(self.desktop.events()):
+        for button in self.desktop.events():
             now = time.monotonic()
-            if now - self.last_press >= 0.3:
-                self.last_press = now
-                self.toggle()
+            if now - self.last_press.get(button, 0) >= 0.3:
+                self.last_press[button] = now
+                if button == self.config.button:
+                    self.toggle()
+                elif button == self.config.paste_button:
+                    self.paste_last()
+        return True
+
+    def meter(self):
+        if self.closed:
+            return False
+        if self.state != "recording":
+            self.meter_level, self.meter_frame = 0.0, None
+            return True
+        now = time.monotonic()
+        raw = self.recorder.level if now - self.recorder.level_updated_at < 0.4 else 0.0
+        self.meter_level = max(raw, self.meter_level * 0.72)
+        frame = min(11, round(self.meter_level * 11))
+        quiet = now - self.recorder.last_signal >= 2
+        message = "Recording — no mic input; check mute" if quiet else self.recording_message
+        # Update GTK only here, never from PortAudio's real-time callback.
+        if frame != self.meter_frame:
+            path = Path(__file__).parent.parent / "icons" / f"recording-{frame}.svg"
+            self.indicator.set_icon_full(str(path), message)
+            self.meter_frame = frame
+        if message != self.meter_message:
+            self.status_item.set_label(message)
+            self.indicator.set_title("System Dictation — " + message)
+            if self.practice_window:
+                self.practice_status.set_text(message)
+            self.meter_message = message
         return True
 
     def toggle(self):
@@ -128,6 +167,7 @@ class App:
             self.set_state("error", "Microphone unavailable — check desktop sound input and try again")
             return
         self.started = time.monotonic()
+        self.meter_level = 0.0
         self.idle_deadline = 0
         self.set_state("recording", "Recording — click Back thumb button again to transcribe")
         self.cue("start")
@@ -162,7 +202,8 @@ class App:
         if not text:
             self.set_state("idle", f"No speech detected ({device.upper()}) — ready")
             return False
-        self.last_result = text
+        self.history.add(text)
+        self.refresh_history()
         try:
             self.desktop.paste(text, self.target)
         except Exception as exc:
@@ -180,21 +221,87 @@ class App:
             self.set_state("idle", "Recording cancelled — ready")
 
     def paste_last(self):
-        if self.last_result and self.state not in ("recording", "working"):
+        if self.history.text and self.state not in ("recording", "working"):
             try:
-                self.desktop.paste(self.last_result, self.desktop.focus())
-                self.set_state("idle", "Last result pasted — ready")
+                self.desktop.paste(self.history.text, self.desktop.focus())
+                self.set_state("idle", "Selected transcript pasted — ready")
             except Exception as exc:
                 self.set_state("error", str(exc))
         return False
 
     def copy_last(self):
         from gi.repository import Gdk
-        if self.last_result:
+        if self.history.text:
             cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            cb.set_text(self.last_result, -1)
+            cb.set_text(self.history.text, -1)
             cb.store()
-            self.set_state(self.state, "Last result copied to clipboard")
+            self.set_state(self.state, "Selected transcript copied to clipboard")
+
+    def open_history(self):
+        if self.history_window:
+            stamp = GdkX11.x11_get_server_time(self.history_window.get_window())
+            self.history_window.present_with_time(stamp)
+            return
+        window = Gtk.Window(title="System Dictation — Recent transcripts")
+        window.set_default_size(640, 440)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=16)
+        window.add(box)
+        guide = Gtk.Label(label="Select a transcript, return to your text field, then press the front thumb / Forward button to paste.\nThe newest result is selected automatically. History lasts for this session only.")
+        guide.set_line_wrap(True)
+        guide.set_xalign(0)
+        box.pack_start(guide, False, False, 0)
+        self.history_empty = Gtk.Label(label="No transcripts yet. Record speech with the Back thumb button.")
+        box.pack_start(self.history_empty, False, False, 0)
+        self.history_list = Gtk.ListBox()
+        self.history_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.history_list.connect("row-selected", self.select_history)
+        box.pack_start(self.history_list, False, False, 0)
+        self.history_preview = Gtk.TextView(editable=False, cursor_visible=False)
+        self.history_preview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        self.history_preview.get_accessible().set_name("Selected transcript preview")
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll.add(self.history_preview)
+        box.pack_start(scroll, True, True, 0)
+        close = Gtk.Button(label="Close history")
+        close.connect("clicked", lambda _: window.destroy())
+        box.pack_start(close, False, False, 0)
+        window.connect("destroy", lambda _: setattr(self, "history_window", None))
+        self.history_window = window
+        self.refresh_history()
+        window.show_all()
+        self.history_empty.set_visible(not self.history.items)
+        stamp = GdkX11.x11_get_server_time(window.get_window())
+        window.present_with_time(stamp)
+
+    def refresh_history(self):
+        if not self.history_window:
+            return
+        self.history_refreshing = True
+        try:
+            for row in self.history_list.get_children():
+                self.history_list.remove(row)
+            for index, text in enumerate(self.history.items):
+                summary = " ".join(text.split())
+                if len(summary) > 86:
+                    summary = summary[:83] + "…"
+                label = Gtk.Label(label=f"{index + 1}. {summary}", xalign=0, margin=8)
+                label.set_line_wrap(True)
+                self.history_list.add(label)
+            self.history_list.show_all()
+            if self.history.items:
+                self.history_list.select_row(self.history_list.get_row_at_index(self.history.selected))
+            self.history_preview.get_buffer().set_text(self.history.text)
+            self.history_empty.set_visible(not self.history.items)
+        finally:
+            self.history_refreshing = False
+
+    def select_history(self, widget, row):
+        if row is None or self.history_refreshing:
+            return
+        self.history.select(row.get_index())
+        self.history_preview.get_buffer().set_text(self.history.text)
+        self.paste_item.set_sensitive(self.state not in ("recording", "working"))
 
     def unload(self):
         if self.state in ("recording", "working"):
@@ -229,11 +336,13 @@ class App:
         window.add(box)
         label = Gtk.Label(label=(
             "1. Put your cursor in any text field.\n"
-            "2. Click the Back thumb button once, then speak. The red tray icon means recording.\n"
+            "2. Click the Back thumb button once, then speak. The red mic glows with your input level.\n"
             "3. Click it again. The amber icon means transcribing; keep the field focused.\n"
             "4. Your words are pasted at the cursor. GPU is preferred; CPU is automatic.\n\n"
             "Try it in the box below. Start/Stop does the same thing as the mouse button.\n"
-            "If focus changes, use Paste last result or Copy last result in the tray.\n"
+            "To paste again, focus the field and press the front thumb / Forward button.\n"
+            "Choose older results through Recent transcripts in the tray (last five, this session).\n"
+            "A dim icon and No mic input message mean check your microphone or mute switch.\n"
             "Dictation replaces the clipboard. Audio is temporary and speech stays local."
         ))
         label.set_line_wrap(True)
