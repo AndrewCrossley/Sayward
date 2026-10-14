@@ -2,15 +2,17 @@
 
 Private local dictation for Andrew's Linux Mint Cinnamon **X11** desktop, using the same faster-whisper / Whisper medium engine as old Tessera (`scripts/local-whisper-stt.py`). Tessera itself is untouched.
 
-Run once from a terminal:
+For this update, first **Quit the current System Dictation from its tray menu** when you are ready to switch. Run the new copy from a desktop terminal:
 
 ```bash
-cd /home/andrew/projects/system-dictation
+cd /home/andrew/projects/system-dictation-feedback
 ./install.sh
 ./bin/dictation
 ```
 
 The installer creates a desktop-login autostart entry. After subsequent boots, the tray listener starts when you sign into Cinnamon. The model stays unloaded until the first dictation. You do not need a root/system service: microphone, tray and focused-cursor access belong to the desktop session.
+
+This checkout is separate from the original working app, so preparing the update does not reload or restart it. Installation repoints the login launcher to this directory. Keep this directory while its startup entry is enabled. Configuration and the existing model cache are preserved; history starts empty in the new session.
 
 Place the cursor in a text field and click **Back thumb / mouse button 8**. Recording begins immediately while the model loads in parallel. The red mic icon glows brighter and its small level bars rise with microphone intensity. A dim icon with **No mic input; check mute** after two seconds means little or no sound is reaching the app. This measures incoming audio, not the physical mute switch or whether words are intelligible. Click Back again to stop; amber means transcribing. Keep the target focused until text is pasted.
 
