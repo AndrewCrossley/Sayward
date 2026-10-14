@@ -11,5 +11,19 @@
     "title": "Opening the practice guide brings it above a maximized browser",
     "steps": ["Focus maximized Firefox", "Use tray > How to use / Practice", "Confirm guide is visible in front", "Close guide using Close guide", "Repeat"],
     "expected": "Both openings make the guide visible immediately without requiring its taskbar button."
+  },
+  {
+    "id": "DICT-INPUT-001",
+    "title": "Recording input feedback distinguishes silence and voice",
+    "automated": "tests/test_app.py::test_silent_meter_warns_and_live_input_restores_recording_status",
+    "steps": ["Start recording with silent input", "Wait two seconds and inspect the dim mic and check-mute status", "Feed voice and observe changing glow and bars", "Stop or cancel"],
+    "expected": "Input feedback reacts while recording, clears the silence hint when sound returns, and ends when capture stops."
+  },
+  {
+    "id": "DICT-HISTORY-001",
+    "title": "Forward recovers a selected recent transcript",
+    "automated": "tests/test_app.py::test_failed_auto_paste_still_keeps_new_result_and_forward_uses_selected_text",
+    "steps": ["Complete six distinct recordings", "Open Recent transcripts and confirm five newest rows", "Select an older row and close history", "Focus native, browser or terminal field", "Press Forward"],
+    "expected": "Selected text is inserted once without Enter or browser Forward navigation; selection itself does not paste; oldest sixth result has been evicted."
   }
 ]
