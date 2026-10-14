@@ -25,5 +25,11 @@
     "automated": "tests/test_app.py::test_failed_auto_paste_still_keeps_new_result_and_forward_uses_selected_text",
     "steps": ["Complete six distinct recordings", "Open Recent transcripts and confirm five newest rows", "Select an older row and close history", "Focus native, browser or terminal field", "Press Forward"],
     "expected": "Selected text is inserted once without Enter or browser Forward navigation; selection itself does not paste; oldest sixth result has been evicted."
+  },
+  {
+    "id": "DICT-HISTORY-002",
+    "title": "Five-item history stays within the desktop work area",
+    "steps": ["Complete six short transcripts", "Open Recent transcripts at the standard Mint desktop viewport", "Inspect all five rows and preview", "Close using Close history", "Reopen"],
+    "expected": "Chooser and Close history remain visible above the bottom panel; preview scrolls instead of growing the window beyond the screen."
   }
 ]
