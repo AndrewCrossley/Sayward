@@ -1,6 +1,6 @@
 # System dictation — voice feedback and transcript recovery
 
-Status: active improvement milestone. Andrew confirmed the original app works on his live desktop. That running instance must remain undisturbed; changes and qualification use a separate checkout and VM.
+Status: complete and frozen for the supported Mint Cinnamon X11 workflow. All five acceptance conditions passed targeted tests and VM workflow checks. Andrew confirmed the original app works on his live desktop; that instance remains undisturbed. Activation of this update is pending Andrew's deliberate Quit/install/start command in README.md.
 
 Goal: Andrew can see microphone activity while dictating and recover any of his five most recent transcripts with the Forward thumb button.
 
@@ -16,3 +16,5 @@ Excluded: history across restarts, hardware mute detection, changing automatic-p
 Proof: targeted behavior tests, real Whisper fixture transcription, VM mouse-toggle/audio/tray/paste/focus/restart/recovery checks, and source-blind exploratory qualification. Host activation is a user-run command under the host protection rule.
 
 Original milestone proof remains in `VERIFICATION.md`. This update adds input feedback and recovery without reopening the verified STT engine.
+
+Final runtime: `e9f36b4`. Proof combines the independent full recording/recovery run, the independent repaired chooser retest and coordinator normal Quit/relaunch/guide/navigation checks. Fine amplitude differences are subtle at the small tray size; silence versus live input is visible. Physical-device first use remains Andrew's activation check, not an unperformed VM claim.
