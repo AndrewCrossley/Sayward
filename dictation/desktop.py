@@ -40,9 +40,9 @@ class Desktop:
     def paste(self, text, target):
         from gi.repository import Gtk, Gdk
         if not target or target in (X.NONE, X.PointerRoot) or self.focus() != target:
-            raise RuntimeError("Focus changed. Use Paste last result from the tray when ready.")
+            raise RuntimeError("Focus changed. Focus a text field and press Forward to paste the selected transcript.")
         if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask):
-            raise RuntimeError("Release keyboard modifiers, then use Paste last result from the tray.")
+            raise RuntimeError("Release keyboard modifiers, then press Forward to paste the selected transcript.")
         selections = [Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD), Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)]
         for clipboard in selections:
             clipboard.set_text(text, -1)
@@ -55,7 +55,7 @@ class Desktop:
             raise RuntimeError("The keyboard has no Shift/Insert mapping; result is on the clipboard.")
         # Clipboard managers can take time; verify again just before input.
         if self.focus() != target:
-            raise RuntimeError("Focus changed. Use Paste last result from the tray when ready.")
+            raise RuntimeError("Focus changed. Focus a text field and press Forward to paste the selected transcript.")
         xtest.fake_input(self.display, X.KeyPress, shift)
         xtest.fake_input(self.display, X.KeyPress, insert)
         xtest.fake_input(self.display, X.KeyRelease, insert)
