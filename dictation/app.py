@@ -244,6 +244,8 @@ class App:
             return
         window = Gtk.Window(title="System Dictation — Recent transcripts")
         window.set_default_size(640, 480)
+        # Measure wrapped labels at a usable width before GTK chooses the height.
+        window.set_size_request(640, -1)
         window.set_position(Gtk.WindowPosition.CENTER)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=16)
         window.add(box)
