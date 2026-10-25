@@ -76,3 +76,14 @@ def test_capture_duration_bounds_memory(monkeypatch):
         streams[0].callback(np.zeros((1600,1), dtype='int16'), 1600, None, False)
     assert recorder.frames == 16000
     recorder.cancel()
+
+
+def test_disconnect_still_closes_stream_and_discards_canceled_audio():
+    recorder=Recorder(Config())
+    closed=[]
+    class Disconnected:
+        def stop(self):raise RuntimeError('Device disconnected')
+        def close(self):closed.append(True)
+    recorder.stream=Disconnected();recorder.chunks=[b'private audio'];recorder.level=0.7
+    with pytest.raises(RuntimeError,match='disconnected'):recorder.cancel()
+    assert closed and recorder.stream is None and not recorder.chunks and recorder.level==0

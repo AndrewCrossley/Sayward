@@ -127,6 +127,9 @@ class Engine:
             except Exception:
                 self.close()
                 raise
+        if self.stopping:
+            self.close()
+            raise RuntimeError('Dictation is shutting down.')
         self._reply(180)
         self.device = device
 
@@ -266,12 +269,14 @@ class Recorder:
         return path
 
     def cancel_stream(self):
-        if self.stream:
-            self.stream.stop()
-            self.stream.close()
-            self.stream = None
-        self.level = 0.0
+        stream, self.stream = self.stream, None
+        try:
+            if stream:
+                try:stream.stop()
+                finally:stream.close()
+        finally:
+            self.level = 0.0
 
     def cancel(self):
-        self.cancel_stream()
-        self.chunks.clear()
+        try:self.cancel_stream()
+        finally:self.chunks.clear()

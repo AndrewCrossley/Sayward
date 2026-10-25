@@ -55,3 +55,30 @@ def test_frozen_command_targets_console_worker(monkeypatch):
     assert commands[0][0].replace('\\','/')=='/app/SaywardWorker.exe'
     assert commands[0][1:3]==['--worker','cpu']
     engine.close()
+
+
+def test_shutdown_releases_desktop_even_when_microphone_disappears():
+    released=[]
+    session=Session(Config(),SimpleNamespace(close=lambda:released.append(True)),lambda *_:None)
+    session.recorder.cancel=lambda:(_ for _ in ()).throw(RuntimeError('disconnected'))
+    session.shutdown()
+    assert session.closed and session.engine.stopping and released
+
+
+def test_quit_during_process_creation_reaps_child_without_waiting_for_ready(monkeypatch):
+    from dictation import core
+    import sys
+    engine=Engine(Config());terminated=[]
+    class Child:
+        stdin=SimpleNamespace(close=lambda:None)
+        stdout=SimpleNamespace(close=lambda:None)
+        terminate=lambda _:terminated.append(True)
+        wait=lambda *_,**__:None
+    def create(*args,**kwargs):
+        engine.stopping=True
+        return Child()
+    monkeypatch.setattr(core.subprocess,'Popen',create)
+    monkeypatch.setattr(sys,'platform','linux')
+    monkeypatch.setattr(engine,'_reply',lambda _:pytest.fail('Quit must not wait for model startup'))
+    with pytest.raises(RuntimeError,match='shutting down'):engine._start('cpu')
+    assert terminated and engine.process is None

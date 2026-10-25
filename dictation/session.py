@@ -101,9 +101,12 @@ class Session:
 
     def cancel(self):
         if self.state == "recording":
-            self.recorder.cancel()
             self.idle_deadline = time.monotonic() + self.config.idle_seconds
-            self.set_state("idle", "Recording cancelled — ready")
+            try:
+                self.recorder.cancel()
+                self.set_state("idle", "Recording cancelled — ready")
+            except Exception as error:
+                self.set_state('error','Capture stopped — '+str(error))
 
     def paste_last(self):
         if self.history.text and self.state not in ("recording", "working"):
@@ -141,8 +144,9 @@ class Session:
         if self.closed:
             return
         self.closed = True
-        self.recorder.cancel()
         self.engine.stopping = True
+        try:self.recorder.cancel()
+        except Exception:pass  # Shutdown must still release hooks and the worker.
         if self.engine.process:
             self.engine.process.terminate()
         self.executor.submit(self.engine.close)
