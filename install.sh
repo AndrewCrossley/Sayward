@@ -52,7 +52,7 @@ root = os.environ['DICTATION_INSTALL_ROOT']
 if any(c in root for c in '\n\r'):
     raise SystemExit('Unsupported install path')
 escaped = (root + '/bin/dictation').replace('\\', '\\\\').replace('"', '\\"').replace('`', '\\`').replace('$', '\\$').replace('%', '%%')
-content = '[Desktop Entry]\nType=Application\nName=System Dictation\nComment=Back thumb button toggles private local dictation\nExec="'+escaped+'"\nTerminal=false\nX-GNOME-Autostart-enabled=true\nX-GNOME-Autostart-Delay=5\n'
+content = '[Desktop Entry]\nType=Application\nName=Sayward\nComment=Back thumb button toggles private local dictation\nExec="'+escaped+'"\nTerminal=false\nX-GNOME-Autostart-enabled=true\nX-GNOME-Autostart-Delay=5\n'
 (Path.home()/'.config/autostart/system-dictation.desktop').write_text(content)
 PY
 echo 'Installed. Starts at desktop login (after reboot too). To start now:'
