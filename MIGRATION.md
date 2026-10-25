@@ -17,3 +17,5 @@ Graphify inventories are in ignored evidence/graph-*.txt, with no truncation. En
 | Install/startup | shell/desktop login | frozen executable/Inno Setup | installers |
 
 Existing Linux settings/cache/lock intentionally remain compatible. Windows has no prior state to migrate. History is session-only. Frozen worker dispatch happens before GUI startup. Supported states include first launch, recording/working/error, cancel/retry, silence, changed focus, selected history, rapid presses, unload, Quit/relaunch, install/uninstall and available DPI scales. Negative checks prevent Enter/submission, changed-focus insertion, duplicate listeners, worker restart during shutdown and network inference.
+
+Windows tray recovery intentionally uses Forward after focusing the destination, or Copy selected transcript. A tray Paste action was removed after native testing showed the menu can keep focus on its hidden owner rather than the editor. Linux keeps its existing delayed tray-paste behavior. This avoids adding automatic foreground restoration or guessing which previous field should receive text.

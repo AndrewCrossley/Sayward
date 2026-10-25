@@ -39,6 +39,8 @@ Tray → **How to use / Practice** offers a highlighted Start/Stop button and a 
 
 History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). Insertion does not send Enter. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
 
+On Windows, focus the destination and press Forward for recovery; the tray offers a shortcut hint and Copy selected transcript. Windows tray menus take focus, so they do not offer a separate Paste action. Linux retains its delayed tray Paste action.
+
 A changed native window/control focus prevents automatic insertion; recover with Forward. Different fields within one browser/native window cannot always be distinguished, so keep the intended field focused. Applications that block clipboard insertion, games, remote desktops, Wayland and arbitrary secure fields are outside scope.
 
 ## Development

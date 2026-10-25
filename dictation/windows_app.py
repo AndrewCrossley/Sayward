@@ -116,7 +116,7 @@ class WindowsApp(Session):
             Item(lambda _:self.status,lambda *_:None,enabled=False),
             Item(lambda _:'Stop and transcribe' if self.state=='recording' else 'Start recording',action(self.toggle),enabled=lambda _:self.state!='working'),
             Item('Cancel recording',action(self.cancel),enabled=lambda _:self.state=='recording'),
-            Item('Paste selected transcript (Forward)',action(self.paste_last),enabled=lambda _:bool(self.history.text) and self.state not in ('working','recording')),
+            Item('Focus your destination, then press Forward to paste',lambda *_:None,enabled=False),
             Item('Recent transcripts (last 5)',action(self.open_history)),
             Item('Copy selected transcript',action(self.copy_last)),
             Item('How to use / Practice',action(self.help),default=True),
