@@ -93,3 +93,13 @@ def test_reaping_crashed_worker_tolerates_broken_buffered_stdin():
     child.stdin.write('unflushed job')
     engine.close()
     assert engine.process is None and child.stdin.closed and child.stdout.closed
+
+
+def test_capture_failure_still_schedules_idle_model_release():
+    session=Session(Config(),SimpleNamespace(close=lambda:None),lambda *_:None)
+    session.state='recording';session.idle_deadline=0
+    session.recorder.stop=lambda:(_ for _ in ()).throw(RuntimeError('Capture interrupted'))
+    changes=[];session.set_state=lambda *args:changes.append(args)
+    session.toggle()
+    assert session.idle_deadline>0 and changes[0][0]=='error'
+    session.shutdown()

@@ -39,6 +39,7 @@ class Session:
             try:
                 audio = self.recorder.stop()
             except Exception as exc:
+                self.idle_deadline = time.monotonic() + self.config.idle_seconds
                 self.set_state("error", str(exc))
                 return
             self.target = self.desktop.focus()
