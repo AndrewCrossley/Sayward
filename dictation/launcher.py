@@ -4,6 +4,7 @@ import sys
 
 
 def main():
+    os.environ.setdefault('HF_HUB_DISABLE_TELEMETRY','1')
     if sys.argv[1:2] == ['--worker']:
         # Windowed frozen programs have no standard streams. The worker exe
         # is built console-enabled and launched hidden with redirected pipes.

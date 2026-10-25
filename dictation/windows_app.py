@@ -35,6 +35,7 @@ class WindowsApp(Session):
         self.root.withdraw()
         self.root.title('Sayward')
         self.callbacks=queue.Queue()
+        self.root.report_callback_exception=lambda _kind,error,_trace:self.report_error(error)
         try:
             desktop=Desktop(config.button, config.paste_button)
         except Exception:
@@ -62,13 +63,27 @@ class WindowsApp(Session):
     def pump(self):
         if self.closed:
             return
-        while True:
-            try:callback,args=self.callbacks.get_nowait()
-            except queue.Empty:break
-            callback(*args)
-            if self.closed:return
-        self.poll()
-        self.root.after(20,self.pump)
+        callback=None
+        try:
+            while True:
+                try:callback,args=self.callbacks.get_nowait()
+                except queue.Empty:break
+                callback(*args)
+                if self.closed:return
+            callback=None
+            self.poll()
+        except Exception as error:
+            self.report_error(error,completed=callback==self.finished)
+        finally:
+            if not self.closed:self.root.after(20,self.pump)
+
+    def report_error(self,error,completed=False):
+        if self.closed:return
+        state=self.state if self.state in ('recording','working') and not completed else 'error'
+        message=('Recording continues — ' if state=='recording' else 'Transcribing continues — ' if state=='working' else '')+'Action failed: '+str(error)
+        try:self.set_state(state,message)
+        except Exception:
+            messagebox.showerror('Sayward',message,parent=self.root)
 
     def timer(self):
         if not self.closed:
@@ -281,7 +296,7 @@ class WindowsApp(Session):
         def run():
             try:
                 from huggingface_hub import snapshot_download
-                snapshot_download('Systran/faster-whisper-'+choice,cache_dir=self.config.cache_dir,
+                snapshot_download('Systran/faster-whisper-'+choice,cache_dir=self.config.cache_dir,token=False,
                     allow_patterns=['config.json','model.bin','tokenizer.json','vocabulary.*'])
                 error=None
             except Exception as exc:error=str(exc)
