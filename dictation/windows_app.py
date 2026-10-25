@@ -5,6 +5,7 @@ from pathlib import Path
 import queue
 import sys
 import threading
+import tempfile
 import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
@@ -253,7 +254,14 @@ class WindowsApp(Session):
 
     def save(self):
         path=config_path();path.parent.mkdir(parents=True,exist_ok=True)
-        path.write_text(json.dumps(self.config.__dict__,indent=2)+'\n',encoding='utf-8')
+        fd,name=tempfile.mkstemp(prefix='config-',suffix='.tmp',dir=path.parent)
+        try:
+            with os.fdopen(fd,'w',encoding='utf-8') as output:
+                json.dump(self.config.__dict__,output,indent=2)
+                output.write('\n');output.flush();os.fsync(output.fileno())
+            os.replace(name,path)
+        finally:
+            Path(name).unlink(missing_ok=True)
 
     def setup(self):
         if self.setup_window and self.setup_window.winfo_exists():

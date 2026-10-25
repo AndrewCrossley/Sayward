@@ -40,3 +40,17 @@ def test_failed_completion_unlocks_controls_for_recovery():
     changes=[];app.set_state=lambda *args:changes.append(args)
     app.report_error(OSError('view failure'),completed=True)
     assert changes[0][0]=='error'
+
+
+def test_failed_settings_write_preserves_previous_config(monkeypatch,tmp_path):
+    from dictation import windows_app
+    from dictation.core import Config
+    path=tmp_path/'config.json';previous='{"model":"medium"}\n';path.write_text(previous)
+    monkeypatch.setattr(windows_app,'config_path',lambda:path)
+    def disk_full(value,stream,**kwargs):
+        stream.write('{')
+        raise OSError('disk full')
+    monkeypatch.setattr(windows_app.json,'dump',disk_full)
+    app=windows_app.WindowsApp.__new__(windows_app.WindowsApp);app.config=Config()
+    with pytest.raises(OSError,match='disk full'):app.save()
+    assert path.read_text()==previous and not list(tmp_path.glob('config-*.tmp'))
