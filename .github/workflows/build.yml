@@ -5,6 +5,8 @@ permissions:
 jobs:
   windows:
     runs-on: windows-2022
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -15,10 +17,13 @@ jobs:
       - run: choco install innosetup --no-progress -y
       - shell: pwsh
         run: ./packaging/build-windows.ps1
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Sayward-Windows-x64
-          path: dist/installer/*.exe
+      - name: Save installer as a draft release for qualification
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "build-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          gh release create $tag dist/installer/*.exe --draft --target $env:GITHUB_SHA --title "Sayward Windows candidate $tag" --notes "Automated installer build from $env:GITHUB_SHA. Draft only: native qualification is required before release."
   linux:
     runs-on: ubuntu-24.04
     steps:
