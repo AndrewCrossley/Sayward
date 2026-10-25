@@ -1,6 +1,6 @@
 # Sayward — Windows installer and Linux parity
 
-Status: qualified, release publication pending, 2026-10-24. Private repository: AndrewCrossley/Sayward. Original installations stay untouched.
+Status: complete / frozen, 2026-10-24. Published release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.2.0. Private repository: AndrewCrossley/Sayward. Original installations stay untouched.
 
 Goal: Andrew can install Sayward on Windows and use the private local dictation workflow already available on Mint X11.
 
@@ -14,3 +14,5 @@ Done when:
 Excluded: cloud assistant, punctuation/spacing changes, Tessera migration, macOS, Wayland, ARM Windows, signing-certificate purchases, arbitrary elevated/secure targets. Windows 10/11 x64 and Mint Cinnamon X11 were exercised; Windows NVIDIA hardware remains explicitly untested.
 
 Proof: protocol/controller regressions; native input/clipboard tests; installer install/launch/startup/uninstall; browser/native/terminal transcription and recovery; level feedback; cancel/restart/model setup error recovery. No host GUI or installed-app changes.
+
+Acceptance proof: standalone history retained; final per-user Windows installer and native CPU workflows qualified on Windows 10/11; Mint recording/recovery/install/reboot parity passed; common engine and real Linux CUDA/CPU fixture checks passed; release installer, checksums, qualification archive and recovery documentation published. All test leases released. Unsigned installer, actual Windows CUDA hardware and physical-device/sound audition are nonblocking documented limits.

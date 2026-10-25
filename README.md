@@ -25,7 +25,7 @@ Install `uv` and the desktop prerequisites: Python 3 GI/GTK3, Ayatana AppIndicat
 
 If the original System Dictation is running, deliberately Quit it from its tray before switching. Agents do not restart Andrew's installed copy. The installer retains the original `system-dictation` configuration/cache/lock and startup filename for compatibility, avoiding duplicate listeners. It also installs the `sayward` launcher. Keep this source directory while login startup points to it.
 
-On an NVIDIA system the Linux installer adds private CUDA/cuDNN Python packages; CPU-only installs avoid those downloads. Windows uses compatible NVIDIA CUDA 12/cuDNN 9 libraries when already installed and available in the DLL search path, otherwise CPU automatically. No system driver is changed. GPU admission requires 3 GiB free VRAM; low memory or CUDA initialization/inference failure retries the same recording on CPU. Models unload after 120 seconds idle.
+On an NVIDIA system the Linux installer adds private CUDA/cuDNN Python packages; CPU-only installs avoid those downloads. Windows uses compatible [NVIDIA CUDA 12/cuDNN 9 libraries](https://github.com/SYSTRAN/faster-whisper/blob/v1.2.1/README.md#gpu) when already installed and available in the DLL search path, otherwise CPU automatically. No system driver is changed. GPU admission requires 3 GiB free VRAM; low memory or CUDA initialization/inference failure retries the same recording on CPU. Models unload after 120 seconds idle.
 
 ## Everyday use
 
