@@ -1,7 +1,5 @@
 import pytest
-pytest.importorskip('gi')
-pytest.importorskip('Xlib')
-from dictation.app import App
+from dictation.session import Session as App
 from dictation.core import TranscriptHistory, Config
 from types import SimpleNamespace
 
@@ -67,6 +65,9 @@ def test_button_events_dispatch_separately_without_starting_recording_on_forward
 
 
 def test_silent_meter_warns_and_live_input_restores_recording_status(monkeypatch):
+    pytest.importorskip('gi')
+    pytest.importorskip('Xlib')
+    from dictation.app import App
     from dictation import app as app_module
     monkeypatch.setattr(app_module.time, 'monotonic', lambda: 100)
     app = App.__new__(App)
