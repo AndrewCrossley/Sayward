@@ -9,6 +9,7 @@ import tempfile
 import time
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
+from tkinter.scrolledtext import ScrolledText
 
 from .core import Config
 from .paths import config_path, assets
@@ -179,8 +180,13 @@ class WindowsApp(Session):
     def window(self,title,width=650,height=510):
         window=tk.Toplevel(self.root)
         window.title('Sayward — '+title)
-        window.geometry(f'{width}x{height}')
-        window.minsize(500,360)
+        scale=max(1.0,self.root.winfo_fpixels('1i')/96)
+        screen_w,screen_h=self.root.winfo_screenwidth(),self.root.winfo_screenheight()
+        max_w,max_h=max(500,screen_w-40),max(360,screen_h-round(80*scale))
+        width,height=min(round(width*scale),max_w),min(round(height*scale),max_h)
+        x,y=max(0,(screen_w-width)//2),max(0,(screen_h-height)//2-20)
+        window.geometry(f'{width}x{height}+{x}+{y}')
+        window.minsize(min(round(500*scale),max_w),min(round(360*scale),max_h))
         window.lift()
         window.after(50,window.focus_force)
         return window
@@ -199,16 +205,19 @@ class WindowsApp(Session):
             'Close this guide any time; reopen it through the tray. Dictation replaces the clipboard.\n'
             'Audio/transcription stay local. Model setup downloads weights once.\n'
             'Elevated/secure fields are unsupported; use ordinary applications.')
-        ttk.Label(box,text=instructions,wraplength=610,justify='left').pack(fill='x',pady=(0,12))
+        help_text=ScrolledText(box,height=8,wrap='word',font='TkDefaultFont',relief='flat')
+        help_text.insert('1.0',instructions);help_text.config(state='disabled')
         self.practice_entry=ttk.Entry(box)
-        self.practice_entry.pack(fill='x',pady=8)
         self.practice_entry.focus_set()
         style=ttk.Style();style.configure('Practice.TButton',foreground='#006025')
         self.practice_button=tk.Button(box,text='Start recording',background='#187944',foreground='white',takefocus=False,command=self.practice_toggle)
-        self.practice_button.pack(fill='x',pady=8)
         self.practice_status=tk.StringVar(value=self.status)
-        ttk.Label(box,textvariable=self.practice_status,wraplength=600).pack(fill='x',pady=8)
+        status=ttk.Label(box,textvariable=self.practice_status,wraplength=600)
         ttk.Button(box,text='Close guide',command=self.guide.destroy).pack(side='bottom',fill='x')
+        status.pack(side='bottom',fill='x',pady=8)
+        self.practice_button.pack(side='bottom',fill='x',pady=8)
+        self.practice_entry.pack(side='bottom',fill='x',pady=8)
+        help_text.pack(fill='both',expand=True,pady=(0,12))
         self.guide.bind('<Alt-r>',lambda _:self.practice_toggle())
 
     def practice_toggle(self):
@@ -269,7 +278,9 @@ class WindowsApp(Session):
         self.setup_window=self.window('Model setup',650,420)
         box=ttk.Frame(self.setup_window,padding=18);box.pack(fill='both',expand=True)
         ttk.Label(box,text='Choose your local speech model',font=('Segoe UI',14,'bold')).pack(anchor='w')
-        ttk.Label(box,text='Medium is the original quality setting (~1.5 GB download). Small uses less disk and is faster on CPU.\nInternet is needed only to download model files from Hugging Face. Your audio is never uploaded.\nCompatible NVIDIA CUDA 12/cuDNN 9 is used when available; otherwise CPU is automatic.',wraplength=600).pack(fill='x',pady=14)
+        details=ScrolledText(box,height=5,wrap='word',font='TkDefaultFont',relief='flat')
+        details.insert('1.0','Medium is the original quality setting (~1.5 GB download). Small uses less disk and is faster on CPU.\nInternet is needed only to download model files from Hugging Face. Your audio is never uploaded.\nCompatible NVIDIA CUDA 12/cuDNN 9 is used when available; otherwise CPU is automatic.')
+        details.config(state='disabled');details.pack(fill='x',pady=10)
         self.model_choice=ttk.Combobox(box,values=('medium','small','base','tiny'),state='readonly')
         self.model_choice.set(self.config.model if self.config.model in ('medium','small','base','tiny') else 'medium')
         self.model_choice.pack(fill='x')
