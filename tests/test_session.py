@@ -82,3 +82,14 @@ def test_quit_during_process_creation_reaps_child_without_waiting_for_ready(monk
     monkeypatch.setattr(engine,'_reply',lambda _:pytest.fail('Quit must not wait for model startup'))
     with pytest.raises(RuntimeError,match='shutting down'):engine._start('cpu')
     assert terminated and engine.process is None
+
+
+def test_reaping_crashed_worker_tolerates_broken_buffered_stdin():
+    import subprocess,sys
+    engine=Engine(Config())
+    engine.process=subprocess.Popen([sys.executable,'-c','pass'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
+    child=engine.process
+    child.wait(timeout=5)
+    child.stdin.write('unflushed job')
+    engine.close()
+    assert engine.process is None and child.stdin.closed and child.stdout.closed

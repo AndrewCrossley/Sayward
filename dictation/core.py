@@ -74,8 +74,9 @@ class Engine:
             except subprocess.TimeoutExpired:
                 self.process.kill()
                 self.process.wait(timeout=3)
-            self.process.stdin.close()
-            self.process.stdout.close()
+            for stream in (self.process.stdin,self.process.stdout):
+                try:stream.close()
+                except OSError:pass  # A crashed worker can leave buffered pipe data.
         self.process = None
         self.device = None
         if self._job:
