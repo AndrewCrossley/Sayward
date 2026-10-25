@@ -8,7 +8,7 @@ Graphify inventories are in ignored evidence/graph-*.txt, with no truncation. En
 | --- | --- | --- | --- |
 | Audio/model/history/lifecycle | retained | shared | core.py and session.py |
 | Worker transport | queue-backed pipes | queue-backed pipes | Engine; Windows selectors cannot wait on pipes |
-| Worker launch | Python module | frozen worker dispatch or Python module | worker_command and launcher |
+| Worker launch | Python module | frozen worker dispatch or Python module | Engine._start and launcher |
 | Mouse/focus/paste | X11 retained | Win32 hook and Unicode clipboard | OS Desktop adapter |
 | Levels/tray/help | GTK | Tk and native tray | presentation |
 | Config/cache | existing system-dictation locations | LOCALAPPDATA/Sayward | paths.py |

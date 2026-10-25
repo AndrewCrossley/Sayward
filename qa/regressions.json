@@ -3,33 +3,133 @@
     "id": "DICT-UNLOAD-001",
     "title": "Idle unload never resets a newly started recording",
     "automated": "tests/test_app.py::test_late_idle_unload_does_not_reset_active_operation",
-    "steps": ["Complete or cancel recording", "Start another recording as the idle unload expires", "Observe red recording state", "Stop and observe transcription"],
+    "steps": [
+      "Complete or cancel recording",
+      "Start another recording as the idle unload expires",
+      "Observe red recording state",
+      "Stop and observe transcription"
+    ],
     "expected": "The active recording or transcription retains its state when the previous unload completes."
   },
   {
     "id": "DICT-GUIDE-001",
     "title": "Opening the practice guide brings it above a maximized browser",
-    "steps": ["Focus maximized Firefox", "Use tray > How to use / Practice", "Confirm guide is visible in front", "Close guide using Close guide", "Repeat"],
+    "steps": [
+      "Focus maximized Firefox",
+      "Use tray > How to use / Practice",
+      "Confirm guide is visible in front",
+      "Close guide using Close guide",
+      "Repeat"
+    ],
     "expected": "Both openings make the guide visible immediately without requiring its taskbar button."
   },
   {
     "id": "DICT-INPUT-001",
     "title": "Recording input feedback distinguishes silence and voice",
     "automated": "tests/test_app.py::test_silent_meter_warns_and_live_input_restores_recording_status",
-    "steps": ["Start recording with silent input", "Wait two seconds and inspect the dim mic and check-mute status", "Feed voice and observe changing glow and bars", "Stop or cancel"],
+    "steps": [
+      "Start recording with silent input",
+      "Wait two seconds and inspect the dim mic and check-mute status",
+      "Feed voice and observe changing glow and bars",
+      "Stop or cancel"
+    ],
     "expected": "Input feedback reacts while recording, clears the silence hint when sound returns, and ends when capture stops."
   },
   {
     "id": "DICT-HISTORY-001",
     "title": "Forward recovers a selected recent transcript",
     "automated": "tests/test_app.py::test_failed_auto_paste_still_keeps_new_result_and_forward_uses_selected_text",
-    "steps": ["Complete six distinct recordings", "Open Recent transcripts and confirm five newest rows", "Select an older row and close history", "Focus native, browser or terminal field", "Press Forward"],
+    "steps": [
+      "Complete six distinct recordings",
+      "Open Recent transcripts and confirm five newest rows",
+      "Select an older row and close history",
+      "Focus native, browser or terminal field",
+      "Press Forward"
+    ],
     "expected": "Selected text is inserted once without Enter or browser Forward navigation; selection itself does not paste; oldest sixth result has been evicted."
   },
   {
     "id": "DICT-HISTORY-002",
     "title": "Five-item history stays within the desktop work area",
-    "steps": ["Complete six short transcripts", "Open Recent transcripts at the standard Mint desktop viewport", "Inspect all five rows and preview", "Close using Close history", "Reopen"],
+    "steps": [
+      "Complete six short transcripts",
+      "Open Recent transcripts at the standard Mint desktop viewport",
+      "Inspect all five rows and preview",
+      "Close using Close history",
+      "Reopen"
+    ],
     "expected": "Chooser and Close history remain visible above the bottom panel; preview scrolls instead of growing the window beyond the screen."
+  },
+  {
+    "id": "WIN-DOWNLOAD-001",
+    "title": "Windowed installer downloads a public model without console streams",
+    "automated": "tests/test_launcher.py::test_windowed_startup_supplies_safe_streams_before_download_libraries",
+    "steps": [
+      "Install the frozen Windows package",
+      "Open Model setup and choose tiny",
+      "Download selected model; close and reopen setup during download",
+      "Wait for Model ready; record and transcribe offline"
+    ],
+    "expected": "Download completes without a NoneType.write or incomplete-repository-cache error; controls recover, and setup saves a model that can immediately transcribe offline."
+  },
+  {
+    "id": "WIN-DPI-001",
+    "title": "Setup and practice controls fit larger Windows display scaling",
+    "steps": [
+      "Run Windows at 100%, 125% and 150% display scaling",
+      "Open Model setup, Practice and Recent transcripts",
+      "Use and close each window; scroll instructional or preview text"
+    ],
+    "expected": "Start/Stop, folder selection, download and Close controls remain visible above the taskbar."
+  },
+  {
+    "id": "WIN-DISPATCH-001",
+    "title": "A failed action does not disable Back, recovery or Quit",
+    "automated": "tests/test_windows_view.py::test_callback_failure_keeps_dispatch_alive_and_quit_reachable",
+    "steps": [
+      "Fail a configuration action",
+      "Continue recording or finish transcription",
+      "Recover selected text and Quit"
+    ],
+    "expected": "The dispatcher keeps running; unrelated configuration errors do not cancel active work; failed completion unlocks controls."
+  },
+  {
+    "id": "WIN-CONFIG-001",
+    "title": "Interrupted settings writes preserve the previous configuration",
+    "automated": "tests/test_windows_view.py::test_failed_settings_write_preserves_previous_config",
+    "steps": [
+      "Save a valid configuration",
+      "Simulate a write failure during a subsequent save",
+      "Reload configuration"
+    ],
+    "expected": "The previous complete configuration survives and temporary partial output is removed."
+  },
+  {
+    "id": "DICT-SHUTDOWN-001",
+    "title": "Quit and capture failure release their owned resources",
+    "automated": [
+      "tests/test_session.py::test_quit_during_process_creation_reaps_child_without_waiting_for_ready",
+      "tests/test_session.py::test_reaping_crashed_worker_tolerates_broken_buffered_stdin",
+      "tests/test_recorder.py::test_disconnect_still_closes_stream_and_discards_canceled_audio",
+      "tests/test_session.py::test_capture_failure_still_schedules_idle_model_release"
+    ],
+    "steps": [
+      "Start recording while the model starts",
+      "On Windows, force-close the GUI with a live model worker",
+      "Quit, or disconnect the fixture microphone",
+      "Verify process/input cleanup; relaunch and record again"
+    ],
+    "expected": "No orphan worker, stuck hook, abandoned capture or permanently loaded idle model remains."
+  },
+  {
+    "id": "DICT-INSTALL-001",
+    "title": "Uninstall removes owned startup and launchers while retaining user models/configuration",
+    "steps": [
+      "Install with login startup enabled",
+      "Quit and uninstall",
+      "Verify startup/program entries removed, model/config retained",
+      "Reinstall and sign in again"
+    ],
+    "expected": "A single listener starts at login with no model worker before first capture; unrelated installations and retained user data are untouched."
   }
 ]
