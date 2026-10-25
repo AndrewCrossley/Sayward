@@ -52,5 +52,6 @@ def test_frozen_command_targets_console_worker(monkeypatch):
     # Avoid constructing a real Windows job in this command-construction check.
     monkeypatch.setattr(sys,'platform','linux')
     engine._start('cpu')
-    assert commands[0][:3]==['/app/SaywardWorker.exe','--worker','cpu']
+    assert commands[0][0].replace('\\','/')=='/app/SaywardWorker.exe'
+    assert commands[0][1:3]==['--worker','cpu']
     engine.close()

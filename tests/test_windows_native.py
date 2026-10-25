@@ -1,9 +1,10 @@
 import sys
 import time
 import ctypes as C
+import os
 import pytest
 
-pytestmark=pytest.mark.skipif(sys.platform!='win32',reason='Real Win32 boundary; run in Windows VM')
+pytestmark=pytest.mark.skipif(sys.platform!='win32' or os.environ.get('SAYWARD_NATIVE_TESTS')!='1',reason='Requires an interactive disposable Windows desktop; set SAYWARD_NATIVE_TESTS=1 in VM')
 
 
 def test_native_clipboard_preserves_unicode_and_both_mouse_buttons_are_consumed():
