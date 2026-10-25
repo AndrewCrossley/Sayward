@@ -1,0 +1,30 @@
+name: Verify and build
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: uv sync --frozen --group windows-build
+      - run: uv run --no-sync python -m pytest tests -q
+      - run: choco install innosetup --no-progress -y
+      - shell: pwsh
+        run: ./packaging/build-windows.ps1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Sayward-Windows-x64
+          path: dist/installer/*.exe
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.12'
+      - run: uv sync --frozen
+      - run: uv run --no-sync python -m pytest tests -q

@@ -14,9 +14,10 @@ gi.require_version("AyatanaAppIndicator3", "0.1")
 from gi.repository import Gtk, GLib, GdkX11, AyatanaAppIndicator3
 from .core import Config, Engine, Recorder, TranscriptHistory
 from .desktop import Desktop
+from .session import Session
 
 
-class App:
+class App(Session):
     def __init__(self, config):
         runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/dictation-{os.getuid()}"))
         runtime.mkdir(mode=0o700, exist_ok=True)
@@ -24,17 +25,8 @@ class App:
         try:
             fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            raise RuntimeError("System Dictation is already running.")
-        self.config = config
-        self.desktop = Desktop(config.button, config.paste_button)
-        self.recorder = Recorder(config)
-        self.engine = Engine(config)
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        self.state, self.started = "idle", 0
-        self.history, self.target = TranscriptHistory(), None
-        self.closed = False
-        self.idle_deadline = 0
-        self.last_press = {}
+            raise RuntimeError("Sayward is already running.")
+        super().__init__(config, Desktop(config.button, config.paste_button), GLib.idle_add)
         self.practice_window = None
         self.history_window = None
         self.history_refreshing = False
@@ -89,7 +81,7 @@ class App:
             self.meter_message = None
         self.status_item.set_label(message)
         self.indicator.set_icon_full(self.icon(state), message)
-        self.indicator.set_title("System Dictation — " + message)
+        self.indicator.set_title("Sayward — " + message)
         self.toggle_item.set_label("Stop and transcribe" if state == "recording" else "Start recording")
         self.toggle_item.set_sensitive(state != "working")
         self.cancel_item.set_sensitive(state == "recording")
@@ -109,18 +101,6 @@ class App:
         except OSError:
             pass
 
-    def poll(self):
-        if self.closed:
-            return False
-        for button in self.desktop.events():
-            now = time.monotonic()
-            if now - self.last_press.get(button, 0) >= 0.3:
-                self.last_press[button] = now
-                if button == self.config.button:
-                    self.toggle()
-                elif button == self.config.paste_button:
-                    self.paste_last()
-        return True
 
     def meter(self):
         if self.closed:
@@ -141,93 +121,17 @@ class App:
             self.meter_frame = frame
         if message != self.meter_message:
             self.status_item.set_label(message)
-            self.indicator.set_title("System Dictation — " + message)
+            self.indicator.set_title("Sayward — " + message)
             if self.practice_window:
                 self.practice_status.set_text(message)
             self.meter_message = message
         return True
 
-    def toggle(self):
-        if self.state == "working":
-            return
-        if self.state == "recording":
-            try:
-                audio = self.recorder.stop()
-            except Exception as exc:
-                self.set_state("error", str(exc))
-                return
-            self.target = self.desktop.focus()
-            self.set_state("working", "Transcribing — please keep this text field focused")
-            self.cue("stop")
-            self.submit(lambda: self.engine.transcribe(audio), self.finished, audio)
-            return
-        try:
-            self.recorder.start()
-        except Exception:
-            self.set_state("error", "Microphone unavailable — check desktop sound input and try again")
-            return
-        self.started = time.monotonic()
-        self.meter_level = 0.0
-        self.idle_deadline = 0
-        self.set_state("recording", "Recording — click Back thumb button again to transcribe")
-        self.cue("start")
-        self.submit(self.engine.prepare, self.prepared)
 
-    def submit(self, work, callback, audio=None):
-        def run():
-            try:
-                value, error = work(), None
-            except Exception as exc:
-                value, error = None, str(exc)
-            finally:
-                if audio:
-                    Path(audio).unlink(missing_ok=True)
-            if not self.closed:
-                GLib.idle_add(callback, value, error)
-        self.executor.submit(run)
 
-    def prepared(self, device, error):
-        if self.state == "recording":
-            message = "Recording — " + ("model will retry after stop" if error else f"{device.upper()} model ready")
-            self.set_state("recording", message)
-        return False
 
-    def finished(self, result, error):
-        self.idle_deadline = time.monotonic() + self.config.idle_seconds
-        if error:
-            self.set_state("error", "Transcription failed — " + error)
-            self.cue("error")
-            return False
-        text, device = result
-        if not text:
-            self.set_state("idle", f"No speech detected ({device.upper()}) — ready")
-            return False
-        self.history.add(text)
-        self.refresh_history()
-        try:
-            self.desktop.paste(text, self.target)
-        except Exception as exc:
-            self.set_state("error", str(exc))
-            self.cue("error")
-            return False
-        self.set_state("idle", f"Text pasted ({device.upper()}) — ready")
-        self.cue("done")
-        return False
 
-    def cancel(self):
-        if self.state == "recording":
-            self.recorder.cancel()
-            self.idle_deadline = time.monotonic() + self.config.idle_seconds
-            self.set_state("idle", "Recording cancelled — ready")
 
-    def paste_last(self):
-        if self.history.text and self.state not in ("recording", "working"):
-            try:
-                self.desktop.paste(self.history.text, self.desktop.focus())
-                self.set_state("idle", "Selected transcript pasted — ready")
-            except Exception as exc:
-                self.set_state("error", str(exc))
-        return False
 
     def copy_last(self):
         from gi.repository import Gdk
@@ -242,7 +146,7 @@ class App:
             stamp = GdkX11.x11_get_server_time(self.history_window.get_window())
             self.history_window.present_with_time(stamp)
             return
-        window = Gtk.Window(title="System Dictation — Recent transcripts")
+        window = Gtk.Window(title="Sayward — Recent transcripts")
         window.set_default_size(640, 480)
         # Measure wrapped labels at a usable width before GTK chooses the height.
         window.set_size_request(640, -1)
@@ -310,34 +214,15 @@ class App:
         self.history_preview.get_buffer().set_text(self.history.text)
         self.paste_item.set_sensitive(self.state not in ("recording", "working"))
 
-    def unload(self):
-        if self.state in ("recording", "working"):
-            return
-        self.idle_deadline = 0
-        self.submit(self.engine.close, self.unloaded)
 
-    def unloaded(self, *_):
-        # A click may start a fresh recording while the unload task completes.
-        if self.state not in ("recording", "working"):
-            self.set_state("idle", "Model unloaded — ready")
-        return False
 
-    def tick(self):
-        if self.closed:
-            return False
-        now = time.monotonic()
-        if self.state == "recording" and now - self.started >= self.config.max_record_seconds:
-            self.toggle()
-        elif self.state not in ("recording", "working") and self.idle_deadline and now >= self.idle_deadline:
-            self.unload()
-        return True
 
     def help(self):
         if self.practice_window:
             stamp = GdkX11.x11_get_server_time(self.practice_window.get_window())
             self.practice_window.present_with_time(stamp)
             return
-        window = Gtk.Window(title="System Dictation — How to use / Practice")
+        window = Gtk.Window(title="Sayward — How to use / Practice")
         window.set_default_size(600, 380)
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14, margin=20)
         window.add(box)
@@ -382,14 +267,7 @@ class App:
     def quit(self):
         if self.closed:
             return False
-        self.closed = True
-        self.recorder.cancel()
-        self.engine.stopping = True
-        if self.engine.process:
-            self.engine.process.terminate()
-        self.executor.submit(self.engine.close)
-        self.executor.shutdown(wait=False)
-        self.desktop.close()
+        self.shutdown()
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.PASSIVE)
         Gtk.main_quit()
         return False

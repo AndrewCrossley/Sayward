@@ -1,7 +1,7 @@
 [project]
-name = "system-dictation"
-version = "0.1.0"
-description = "Private mouse-toggle Whisper dictation for Cinnamon X11"
+name = "sayward"
+version = "0.2.0"
+description = "Private mouse-toggle local dictation for Windows and Linux X11"
 requires-python = ">=3.12"
 dependencies = [
   "faster-whisper==1.2.1",
@@ -9,13 +9,16 @@ dependencies = [
   "av==16.0.1",
   "numpy>=2,<3",
   "sounddevice==0.5.2",
-  "python-xlib==0.33",
-  "nvidia-cublas-cu12>=12,<13",
-  "nvidia-cudnn-cu12>=9,<10",
+  "python-xlib==0.33; sys_platform == 'linux'",
+  "nvidia-cublas-cu12>=12,<13; sys_platform == 'linux'",
+  "nvidia-cudnn-cu12>=9,<10; sys_platform == 'linux'",
+  "pystray==0.19.5; sys_platform == 'win32'",
+  "Pillow>=11,<13; sys_platform == 'win32'",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8,<10"]
+windows-build = ["pyinstaller>=6.16,<7; sys_platform == 'win32'"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

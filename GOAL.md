@@ -1,20 +1,16 @@
-# System dictation — voice feedback and transcript recovery
+# Sayward — Windows installer and Linux parity
 
-Status: complete and frozen for the supported Mint Cinnamon X11 workflow. All five acceptance conditions passed targeted tests and VM workflow checks. Andrew confirmed the original app works on his live desktop; that instance remains undisturbed. Activation of this update is pending Andrew's deliberate Quit/install/start command in README.md.
+Status: active, 2026-10-24. Private repository: AndrewCrossley/Sayward. Original installations stay untouched.
 
-Goal: Andrew can see microphone activity while dictating and recover any of his five most recent transcripts with the Forward thumb button.
+Goal: Andrew can install Sayward on Windows and use the private local dictation workflow already available on Mint X11.
 
 Done when:
-1. The recording tray icon reacts to real microphone intensity; sustained silence shows a check-mute message, and level feedback ends on stop/cancel.
-2. Front thumb / Forward (button 9) pastes the selected completed transcript into the currently focused field without Enter or browser Forward navigation.
-3. A revisitable tray history holds the five most recent successful transcripts in session memory, including results whose automatic paste failed. Selecting an older item changes the Forward-button paste target; empty recordings/errors do not replace prior items.
-4. Existing Back-toggle, automatic paste, GPU/CPU fallback, focus protection, idle unloading and old configuration remain compatible. Speech/history are not saved to disk.
-5. Targeted regressions and independent Mint VM workflows cover voice/silence feedback, bounded history and Forward recovery across native/browser/terminal fields. The live app is not restarted or changed under Andrew.
+1. The dedicated private repository retains standalone dictation history and documents the name check.
+2. Windows x64 has a standalone per-user installer, Start-menu entry, optional login startup, model setup and uninstall. Python is bundled; model/config are retained on uninstall.
+3. Both OSs support Back recording toggle, immediate capture, input feedback/silence warning, guarded automatic insertion, Forward recovery, five-result session history, practice/help, cancel, unload and Quit.
+4. Shared offline workers retain GPU admission, CUDA failure-to-CPU retry and idle unloading. Windows uses CUDA when compatible CUDA/cuDNN libraries exist, otherwise CPU. Audio is temporary and history is memory-only.
+5. Meaningful engine/controller tests pass; real Windows installer and Mint workflows are exercised in admin-verified VMs. Artifacts, recovery instructions and limits are published.
 
-Excluded: history across restarts, hardware mute detection, changing automatic-paste defaults, Wayland/Windows/macOS, streaming transcription, voice commands, cloud STT, Tessera changes, general automation framework.
+Excluded: cloud assistant, punctuation/spacing changes, Tessera migration, macOS, Wayland, ARM Windows, signing-certificate purchases, arbitrary elevated/secure targets. Windows 11 x64 is the primary client; Windows 10 is qualified if a worker is available and otherwise explicitly untested.
 
-Proof: targeted behavior tests, real Whisper fixture transcription, VM mouse-toggle/audio/tray/paste/focus/restart/recovery checks, and source-blind exploratory qualification. Host activation is a user-run command under the host protection rule.
-
-Original milestone proof remains in `VERIFICATION.md`. This update adds input feedback and recovery without reopening the verified STT engine.
-
-Final runtime: `e9f36b4`. Proof combines the independent full recording/recovery run, the independent repaired chooser retest and coordinator normal Quit/relaunch/guide/navigation checks. Fine amplitude differences are subtle at the small tray size; silence versus live input is visible. Physical-device first use remains Andrew's activation check, not an unperformed VM claim.
+Proof: protocol/controller regressions; native input/clipboard tests; installer install/launch/startup/uninstall; browser/native/terminal transcription and recovery; level feedback; cancel/restart/model setup error recovery. No host GUI or installed-app changes.

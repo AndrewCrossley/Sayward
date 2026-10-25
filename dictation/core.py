@@ -1,21 +1,23 @@
 """Audio capture and isolated, lazy Whisper worker lifecycle."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import json
 import math
 import os
 from pathlib import Path
-import selectors
+import queue
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import wave
+from .paths import cache_directory
 
 
 @dataclass
 class Config:
     model: str = "medium"
-    cache_dir: str = str(Path.home() / ".cache/system-dictation/models")
+    cache_dir: str = field(default_factory=cache_directory)
     button: int = 8
     paste_button: int = 9
     gpu_min_free_mb: int = 3072
@@ -49,6 +51,8 @@ class Engine:
         self.device = None
         self.stopping = False
         self.free_memory = free_memory or self.gpu_free_mb
+        self._reader_process = None
+        self._job = None
 
     @staticmethod
     def gpu_free_mb():
@@ -56,6 +60,7 @@ class Engine:
             result = subprocess.run(
                 ["nvidia-smi", "--id=0", "--query-gpu=memory.free", "--format=csv,noheader,nounits"],
                 capture_output=True, text=True, timeout=3, check=True,
+                creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
             )
             return int(result.stdout.strip())
         except (OSError, ValueError, subprocess.SubprocessError):
@@ -73,13 +78,28 @@ class Engine:
             self.process.stdout.close()
         self.process = None
         self.device = None
+        if self._job:
+            self._job.close()
+            self._job = None
 
     def _reply(self, timeout):
-        with selectors.DefaultSelector() as selector:
-            selector.register(self.process.stdout, selectors.EVENT_READ)
-            if not selector.select(timeout):
-                raise RuntimeError("Speech model timed out. Try a shorter recording.")
-            line = self.process.stdout.readline()
+        if self._reader_process is not self.process:
+            self._reader_process = self.process
+            self._replies = queue.Queue()
+            stream, channel = self.process.stdout, self._replies
+            def read():
+                try:
+                    for line in stream:
+                        channel.put(line)
+                except (OSError, ValueError):
+                    pass
+                finally:
+                    channel.put('')
+            threading.Thread(target=read, daemon=True).start()
+        try:
+            line = self._replies.get(timeout=timeout)
+        except queue.Empty:
+            raise RuntimeError("Speech model timed out. Try a shorter recording.") from None
         if not line:
             raise RuntimeError("Speech worker stopped unexpectedly.")
         reply = json.loads(line)
@@ -92,11 +112,21 @@ class Engine:
         if self.stopping:
             raise RuntimeError("Dictation is shutting down.")
         env = dict(os.environ, HF_HUB_OFFLINE="1", HF_HUB_DISABLE_TELEMETRY="1")
+        command = ([str(Path(sys.executable).with_name('SaywardWorker.exe')), '--worker'] if getattr(sys, 'frozen', False)
+                   else [sys.executable, '-u', '-m', 'dictation.worker'])
         self.process = subprocess.Popen(
-            [sys.executable, "-u", "-m", "dictation.worker", device, json.dumps(self.config.__dict__)],
+            [*command, device, json.dumps(self.config.__dict__)],
             stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-            text=True, bufsize=1, env=env,
+            text=True, encoding='utf-8', bufsize=1, env=env,
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
         )
+        if sys.platform == 'win32':
+            from .windows_native import WorkerJob
+            try:
+                self._job = WorkerJob(self.process)
+            except Exception:
+                self.close()
+                raise
         self._reply(180)
         self.device = device
 

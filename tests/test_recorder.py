@@ -32,7 +32,11 @@ def test_recording_captures_immediately_and_wav_is_private(monkeypatch):
     assert recorder.level > 0
     audio = recorder.stop()
     try:
-        assert os.stat(audio).st_mode & 0o777 == 0o600
+        if os.name == 'posix':
+            assert os.stat(audio).st_mode & 0o777 == 0o600
+        else:
+            import tempfile
+            assert Path(audio).parent == Path(tempfile.gettempdir())
         with wave.open(audio) as data:
             assert data.getnchannels() == 1
             assert data.getframerate() == 16000

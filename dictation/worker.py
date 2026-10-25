@@ -6,13 +6,15 @@ import signal
 import sys
 
 
-def main():
+def main(args=None):
     # Stop if the listener dies; leave no GPU worker orphan after a tray crash.
-    ctypes.CDLL(None).prctl(1, signal.SIGTERM, 0, 0, 0)
-    if os.getppid() == 1:
-        return
+    if sys.platform == 'linux':
+        ctypes.CDLL(None).prctl(1, signal.SIGTERM, 0, 0, 0)
+        if os.getppid() == 1:
+            return
     from faster_whisper import WhisperModel
-    device, cfg = sys.argv[1], json.loads(sys.argv[2])
+    device, raw_config = args if args is not None else sys.argv[1:]
+    cfg = json.loads(raw_config)
     model = WhisperModel(
         cfg["model"], device=device,
         compute_type="int8_float16" if device == "cuda" else "int8",

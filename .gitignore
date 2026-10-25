@@ -5,3 +5,6 @@ graphify-out/
 evidence/
 *.wav
 !sounds/*.wav
+dist/
+build/
+packaging/*.ico
