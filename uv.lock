@@ -721,12 +721,16 @@ dependencies = [
     { name = "av" },
     { name = "faster-whisper" },
     { name = "numpy" },
-    { name = "nvidia-cublas-cu12", marker = "sys_platform == 'linux'" },
-    { name = "nvidia-cudnn-cu12", marker = "sys_platform == 'linux'" },
     { name = "pillow", marker = "sys_platform == 'win32'" },
     { name = "pystray", marker = "sys_platform == 'win32'" },
     { name = "python-xlib", marker = "sys_platform == 'linux'" },
     { name = "sounddevice" },
+]
+
+[package.optional-dependencies]
+gpu = [
+    { name = "nvidia-cublas-cu12", marker = "sys_platform == 'linux'" },
+    { name = "nvidia-cudnn-cu12", marker = "sys_platform == 'linux'" },
 ]
 
 [package.dev-dependencies]
@@ -742,13 +746,14 @@ requires-dist = [
     { name = "av", specifier = "==16.0.1" },
     { name = "faster-whisper", specifier = "==1.2.1" },
     { name = "numpy", specifier = ">=2,<3" },
-    { name = "nvidia-cublas-cu12", marker = "sys_platform == 'linux'", specifier = ">=12,<13" },
-    { name = "nvidia-cudnn-cu12", marker = "sys_platform == 'linux'", specifier = ">=9,<10" },
+    { name = "nvidia-cublas-cu12", marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = ">=12,<13" },
+    { name = "nvidia-cudnn-cu12", marker = "sys_platform == 'linux' and extra == 'gpu'", specifier = ">=9,<10" },
     { name = "pillow", marker = "sys_platform == 'win32'", specifier = ">=11,<13" },
     { name = "pystray", marker = "sys_platform == 'win32'", specifier = "==0.19.5" },
     { name = "python-xlib", marker = "sys_platform == 'linux'", specifier = "==0.33" },
     { name = "sounddevice", specifier = "==0.5.2" },
 ]
+provides-extras = ["gpu"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8,<10" }]

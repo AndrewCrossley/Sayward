@@ -9,7 +9,11 @@ command -v uv >/dev/null || { echo 'uv is required.' >&2; exit 1; }
     exit 1
 }
 if [[ ! -d .venv ]]; then uv venv --python /usr/bin/python3 --system-site-packages; fi
-uv sync --frozen --python /usr/bin/python3
+if command -v nvidia-smi >/dev/null && nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
+    uv sync --frozen --extra gpu --python /usr/bin/python3
+else
+    uv sync --frozen --python /usr/bin/python3
+fi
 mkdir -p "$HOME/.config/system-dictation" "$HOME/.cache/system-dictation" "$HOME/.config/autostart" "$HOME/.local/bin"
 if [[ ! -e "$HOME/.cache/system-dictation/models" ]]; then
     if [[ -d "$HOME/projects/tessera/.whisper-cache/models--Systran--faster-whisper-medium" ]]; then
@@ -40,6 +44,7 @@ if not Path(c.model).is_dir():
 PY
 chmod +x bin/dictation
 ln -sfn "$dictation_root/bin/dictation" "$HOME/.local/bin/system-dictation"
+ln -sfn "$dictation_root/bin/dictation" "$HOME/.local/bin/sayward"
 DICTATION_INSTALL_ROOT="$dictation_root" .venv/bin/python - <<'PY'
 import os
 from pathlib import Path

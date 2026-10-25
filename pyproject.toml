@@ -10,11 +10,12 @@ dependencies = [
   "numpy>=2,<3",
   "sounddevice==0.5.2",
   "python-xlib==0.33; sys_platform == 'linux'",
-  "nvidia-cublas-cu12>=12,<13; sys_platform == 'linux'",
-  "nvidia-cudnn-cu12>=9,<10; sys_platform == 'linux'",
   "pystray==0.19.5; sys_platform == 'win32'",
   "Pillow>=11,<13; sys_platform == 'win32'",
 ]
+
+[project.optional-dependencies]
+gpu = ["nvidia-cublas-cu12>=12,<13; sys_platform == 'linux'", "nvidia-cudnn-cu12>=9,<10; sys_platform == 'linux'"]
 
 [dependency-groups]
 dev = ["pytest>=8,<10"]
