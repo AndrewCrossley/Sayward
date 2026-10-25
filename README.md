@@ -1,33 +1,50 @@
-# System Dictation
+# Sayward
 
-Private local dictation for Andrew's Linux Mint Cinnamon **X11** desktop, using the same faster-whisper / Whisper medium engine as old Tessera (`scripts/local-whisper-stt.py`). Tessera itself is untouched.
+Private mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
-For this update, first **Quit the current System Dictation from its tray menu** when you are ready to switch. Run the new copy from a desktop terminal:
+## Windows installer
+
+Download the installer from this repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired.
+
+First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. After setup, recording/transcription need no internet and audio is never sent to a service.
+
+The installer is unsigned, so Windows may show an unknown-publisher/SmartScreen warning. Published installers have SHA-256 checksums. No driver, system CUDA installation, browser extension or cloud account is installed.
+
+Configuration and downloaded models live in `%LOCALAPPDATA%\Sayward`. Uninstall through Windows Settings or the Start-menu uninstall entry; login startup and installed program files are removed, while configuration/model downloads are retained.
+
+Windows 11 x64 is the primary qualification target. Windows 10 x64 uses the same Win32 path but is unqualified until separately tested. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
+
+## Linux
+
+Install `uv` and the desktop prerequisites: Python 3 GI/GTK3, Ayatana AppIndicator3, libportaudio2 and Pulse/PipeWire `paplay`. In this checkout run:
 
 ```bash
-cd /home/andrew/projects/system-dictation-feedback
 ./install.sh
 ./bin/dictation
 ```
 
-The installer creates a desktop-login autostart entry. After subsequent boots, the tray listener starts when you sign into Cinnamon. The model stays unloaded until the first dictation. You do not need a root/system service: microphone, tray and focused-cursor access belong to the desktop session.
+If the original System Dictation is running, deliberately Quit it from its tray before switching. Agents do not restart Andrew's installed copy. The installer retains the original `system-dictation` configuration/cache/lock and startup filename for compatibility, avoiding duplicate listeners. It also installs the `sayward` launcher. Keep this source directory while login startup points to it.
 
-This checkout is separate from the original working app, so preparing the update does not reload or restart it. Installation repoints the login launcher to this directory. Keep this directory while its startup entry is enabled. Configuration and the existing model cache are preserved; history starts empty in the new session.
+On an NVIDIA system the Linux installer adds private CUDA/cuDNN Python packages; CPU-only installs avoid those downloads. Windows uses compatible NVIDIA CUDA 12/cuDNN 9 libraries when already installed and available in the DLL search path, otherwise CPU automatically. No system driver is changed. GPU admission requires 3 GiB free VRAM; low memory or CUDA initialization/inference failure retries the same recording on CPU. Models unload after 120 seconds idle.
 
-Place the cursor in a text field and click **Back thumb / mouse button 8**. Recording begins immediately while the model loads in parallel. The red mic icon glows brighter and its small level bars rise with microphone intensity. A dim icon with **No mic input; check mute** after two seconds means little or no sound is reaching the app. This measures incoming audio, not the physical mute switch or whether words are intelligible. Click Back again to stop; amber means transcribing. Keep the target focused until text is pasted.
+## Everyday use
 
-**Front thumb / Forward / mouse button 9** pastes the selected completed transcript at your current cursor, even if automatic insertion went into a non-editable area. It works when idle or showing an error; presses while recording/transcribing are ignored. The app consumes both thumb buttons while running, so neither navigates the browser. Quit restores normal Back and Forward.
+1. Focus an ordinary text field. Click rear thumb / Back (logical button 8), then speak. Capture starts immediately while the model loads in parallel.
+2. The red mic glows with incoming audio intensity. Sustained silence shows **No mic input; check mute**. This measures audio, not the physical mute switch or intelligible speech.
+3. Click Back again. Amber means transcribing; keep the target focused until insertion completes. Extra presses while working are ignored.
+4. Front thumb / Forward (button 9) pastes the selected completed transcript again. Both buttons are consumed while Sayward runs; Quit restores browser navigation.
+5. Tray → **Recent transcripts (last 5)** shows newest-first history and a full preview. Select an older item, close history, focus a destination and press Forward. Selection alone never pastes. New results select the newest item. Failed automatic insertion still retains its result; empty/error recordings leave prior history intact.
 
-GPU 0 is preferred when at least 3 GiB of VRAM is free. CUDA uses int8/float16; CPU uses int8, with 12 threads. Low free VRAM, CUDA initialization errors, allocation failures or a GPU worker crash trigger CPU processing of the same recording. The model remains warm for 120 seconds after use, then the subprocess exits and releases its memory. Recording automatically stops at 180 seconds. Extra presses during transcription are ignored.
+Tray → **How to use / Practice** offers a highlighted Start/Stop button and a real practice field. Close and revisit it at any time. On Windows, Alt+R in the practice guide also toggles capture. Windows additionally offers **Model setup** for revisiting downloads or choosing a model folder. Cancel, Copy, Unload model and Quit are available through the tray.
 
-Tray menu: Start/Stop, Cancel recording, Paste selected transcript, Recent transcripts (last 5), Copy selected transcript, How to use / Practice, Sound cues, Unload model now and Quit. **Recent transcripts** opens a chooser with five newest-first rows and a full preview. Select a row, close the chooser, focus your destination and click Forward to paste it. A new successful transcription selects the newest row automatically; an empty/failed recording leaves existing history intact. Results whose automatic insertion was blocked are included. This cache stays in memory only and clears on Quit/restart.
+History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). Insertion does not send Enter. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
 
-Changing focus while transcription runs prevents automatic paste into the new window. The tray paste action acts on the field focused after the menu closes. Keyboard modifiers must be released before pasting. Paste/copy actions use the selected transcript, rather than whatever another program last put on the clipboard.
+A changed native window/control focus prevents automatic insertion; recover with Forward. Different fields within one browser/native window cannot always be distinguished, so keep the intended field focused. Applications that block clipboard insertion, games, remote desktops, Wayland and arbitrary secure fields are outside scope.
 
-Text insertion uses the clipboard and Shift+Insert, so it supports normal editable fields, browsers and Linux terminals without pressing Enter. **Dictation replaces both clipboard and primary selection.** Applications that block paste, password/secure fields, games, remote-desktop targets and Wayland are outside the supported scope. The insertion cursor stays under the application's control; do not switch input fields while transcription runs. A different field in the same X11 window cannot always be distinguished.
+## Development
 
-Configuration: `~/.config/system-dictation/config.json`. Change it while the app is stopped. `button`, `paste_button`, `idle_seconds`, `gpu_min_free_mb`, `language`, `sound`, and other defaults are readable there. Old configurations gain Forward button 9 by default; if recording was already assigned to 9, paste defaults to 8. Empty language enables automatic language detection. The medium model is reused from Tessera's existing cache when available; otherwise setup downloads it once. GPU libraries are private Python dependencies, so no host NVIDIA driver or system CUDA installation is modified. The worker uses cached files only and disables Hugging Face network/telemetry. Audio is a mode-0600 temporary WAV, deleted after processing; transcripts are not logged or written to disk.
+Linux: `uv sync` (add `--extra gpu` for private NVIDIA libraries), then `uv run --no-sync python -m pytest tests -q`. GUI/OS qualification uses isolated VMs.
 
-To disable: Quit from the tray, then `./uninstall.sh`. It removes startup and the launcher, preserving configuration/source/model files. Cinnamon's Startup Applications can also disable the entry. Do not move/delete this project directory while its autostart entry is enabled.
+Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.2.0-x64.exe`. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
 
-Verification and material limitations are recorded in `VERIFICATION.md`. This project does not provide voice commands or stream partial words.
+CI builds installer candidates as draft Releases; qualification is required before publishing a release. See `GOAL.md`, `MIGRATION.md`, `NAME-CHECK.md`, `VERIFICATION.md` and `qa/regressions.json`. Original standalone Git history is retained; the old Tessera preservation checkpoint remains separate. No AI-assistant/cloud integration or punctuation/spacing rewrite is included in this milestone.

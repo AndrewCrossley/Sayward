@@ -16,12 +16,14 @@ from .windows_native import Desktop, Singleton, U
 
 
 def model_ready(config):
+    def complete(path):
+        return all((path/name).is_file() for name in ('model.bin','config.json','tokenizer.json')) and any((path/name).is_file() for name in ('vocabulary.txt','vocabulary.json'))
     if Path(config.model).is_dir():
-        return all((Path(config.model)/name).is_file() for name in ('model.bin','config.json','tokenizer.json'))
+        return complete(Path(config.model))
     try:
         from huggingface_hub import snapshot_download
         path=Path(snapshot_download('Systran/faster-whisper-'+config.model,cache_dir=config.cache_dir,local_files_only=True))
-        return all((path/name).is_file() for name in ('model.bin','config.json','tokenizer.json'))
+        return complete(path)
     except Exception:
         return False
 
@@ -248,8 +250,11 @@ class WindowsApp(Session):
         self.model_choice=ttk.Combobox(box,values=('medium','small','base','tiny'),state='readonly')
         self.model_choice.set(self.config.model if self.config.model in ('medium','small','base','tiny') else 'medium')
         self.model_choice.pack(fill='x')
-        self.setup_status=tk.StringVar(value='Ready to download, or choose an existing model folder.')
+        self.setup_status=tk.StringVar(value='Downloading model files. Keep Sayward open.' if self.downloading else 'Ready to download, or choose an existing model folder.')
         ttk.Label(box,textvariable=self.setup_status,wraplength=600).pack(fill='x',pady=12)
+        self.download_progress=ttk.Progressbar(box,mode='indeterminate')
+        self.download_progress.pack(fill='x',pady=4)
+        if self.downloading:self.download_progress.start()
         self.download_button=ttk.Button(box,text='Download selected model',command=self.download)
         self.download_button.pack(fill='x',pady=5)
         self.choose_button=ttk.Button(box,text='Use existing model folder',command=self.choose_model)
@@ -263,7 +268,7 @@ class WindowsApp(Session):
         if not folder:return
         old=self.config.model;self.config.model=folder
         if not model_ready(self.config):
-            self.config.model=old;self.setup_status.set('Folder needs model.bin, config.json and tokenizer.json.');return
+            self.config.model=old;self.setup_status.set('Folder needs model.bin, config.json, tokenizer.json and vocabulary.txt/json.');return
         self.ready_model=True;self.save();self.unload();self.setup_status.set('Model ready. Close setup and use Back to record.')
 
     def download(self):
@@ -271,6 +276,7 @@ class WindowsApp(Session):
         self.downloading=True
         choice=self.model_choice.get()
         self.setup_status.set('Downloading '+choice+'… Keep Sayward open. You can close this window and reopen Model setup.')
+        self.download_progress.start()
         self.download_button.config(state='disabled');self.choose_button.config(state='disabled')
         def run():
             try:
@@ -287,6 +293,7 @@ class WindowsApp(Session):
         if not error:
             self.config.model=choice;self.ready_model=model_ready(self.config);self.save();self.unload()
         if self.setup_window and self.setup_window.winfo_exists():
+            self.download_progress.stop()
             self.download_button.config(state='normal');self.choose_button.config(state='normal')
             self.setup_status.set(('Download failed: '+error) if error else 'Model ready. Close setup and use Back to record.')
         self.set_state('error' if error else 'idle','Model download failed — open Model setup' if error else 'Model ready — Back thumb button to record')
