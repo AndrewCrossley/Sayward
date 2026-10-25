@@ -54,3 +54,39 @@ def test_failed_settings_write_preserves_previous_config(monkeypatch,tmp_path):
     app=windows_app.WindowsApp.__new__(windows_app.WindowsApp);app.config=Config()
     with pytest.raises(OSError,match='disk full'):app.save()
     assert path.read_text()==previous and not list(tmp_path.glob('config-*.tmp'))
+
+
+def test_cached_model_uses_the_same_offline_file_selection_as_inference(monkeypatch,tmp_path):
+    from dictation.windows_app import model_ready
+    from dictation.core import Config
+    from faster_whisper import utils
+    from huggingface_hub.errors import IncompleteSnapshotError
+    import huggingface_hub
+    for name in ('config.json','model.bin','tokenizer.json','vocabulary.txt'):
+        (tmp_path/name).write_text('public fixture')
+    def cached(repo_id,**kwargs):
+        # A model-only cache has no README/.gitattributes; the Hub requires
+        # an explicit file selection to accept that partial repository.
+        if not kwargs.get('allow_patterns'):
+            raise IncompleteSnapshotError('README.md absent')
+        assert kwargs['local_files_only'] is True
+        return str(tmp_path)
+    monkeypatch.setattr(huggingface_hub,'snapshot_download',cached)
+    config=Config(model='tiny',cache_dir=str(tmp_path/'cache'))
+    assert model_ready(config)
+    (tmp_path/'model.bin').unlink()
+    assert not model_ready(config)
+
+
+def test_incomplete_download_keeps_the_previous_usable_model(monkeypatch):
+    from dictation import windows_app
+    from dictation.core import Config
+    app=windows_app.WindowsApp.__new__(windows_app.WindowsApp)
+    app.downloading=True;app.config=Config(model='medium');app.ready_model=True
+    app.setup_window=None
+    changes=[];app.set_state=lambda *args:changes.append(args)
+    app.save=lambda:pytest.fail('An incomplete model must not replace saved configuration')
+    monkeypatch.setattr(windows_app,'model_ready',lambda _:False)
+    app.download_finished('tiny',None)
+    assert app.config.model=='medium' and app.ready_model and not app.downloading
+    assert changes[0][0]=='error'

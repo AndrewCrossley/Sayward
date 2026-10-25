@@ -14,7 +14,7 @@ from tkinter.scrolledtext import ScrolledText
 from .core import Config
 from .paths import config_path, assets
 from .session import Session
-from .windows_native import Desktop, Singleton, U
+from .windows_native import Desktop, Singleton, U, C, W
 
 
 def model_ready(config):
@@ -23,8 +23,8 @@ def model_ready(config):
     if Path(config.model).is_dir():
         return complete(Path(config.model))
     try:
-        from huggingface_hub import snapshot_download
-        path=Path(snapshot_download('Systran/faster-whisper-'+config.model,cache_dir=config.cache_dir,local_files_only=True))
+        from faster_whisper.utils import download_model
+        path=Path(download_model(config.model,cache_dir=config.cache_dir,local_files_only=True,use_auth_token=False))
         return complete(path)
     except Exception:
         return False
@@ -181,10 +181,15 @@ class WindowsApp(Session):
         window=tk.Toplevel(self.root)
         window.title('Sayward — '+title)
         scale=max(1.0,self.root.winfo_fpixels('1i')/96)
-        screen_w,screen_h=self.root.winfo_screenwidth(),self.root.winfo_screenheight()
-        max_w,max_h=max(500,screen_w-40),max(360,screen_h-round(80*scale))
+        area=W.RECT(0,0,self.root.winfo_screenwidth(),self.root.winfo_screenheight())
+        U.SystemParametersInfoW(0x30,0,C.byref(area),0)  # SPI_GETWORKAREA excludes the taskbar.
+        screen_w,screen_h=area.right-area.left,area.bottom-area.top
+        # Tk geometry describes the client area; reserve the native title bar,
+        # borders and a margin as well as the taskbar at every display scale.
+        max_w,max_h=max(300,screen_w-round(32*scale)),max(240,screen_h-round(64*scale))
         width,height=min(round(width*scale),max_w),min(round(height*scale),max_h)
-        x,y=max(0,(screen_w-width)//2),max(0,(screen_h-height)//2-20)
+        x=area.left+max(0,(screen_w-width)//2)
+        y=area.top+max(0,(screen_h-height-round(32*scale))//2)
         window.geometry(f'{width}x{height}+{x}+{y}')
         window.minsize(min(round(500*scale),max_w),min(round(360*scale),max_h))
         window.lift()
@@ -316,9 +321,8 @@ class WindowsApp(Session):
         self.download_button.config(state='disabled');self.choose_button.config(state='disabled')
         def run():
             try:
-                from huggingface_hub import snapshot_download
-                snapshot_download('Systran/faster-whisper-'+choice,cache_dir=self.config.cache_dir,token=False,
-                    allow_patterns=['config.json','model.bin','tokenizer.json','vocabulary.*'])
+                from faster_whisper.utils import download_model
+                download_model(choice,cache_dir=self.config.cache_dir,use_auth_token=False)
                 error=None
             except Exception as exc:error=str(exc)
             self.dispatch(self.download_finished,choice,error)
@@ -327,7 +331,13 @@ class WindowsApp(Session):
     def download_finished(self,choice,error):
         self.downloading=False
         if not error:
-            self.config.model=choice;self.ready_model=model_ready(self.config);self.save();self.unload()
+            previous=self.config.model
+            self.config.model=choice
+            if model_ready(self.config):
+                self.ready_model=True;self.save();self.unload()
+            else:
+                self.config.model=previous
+                error='Downloaded model is incomplete. Retry the download or choose an existing model folder.'
         if self.setup_window and self.setup_window.winfo_exists():
             self.download_progress.stop()
             self.download_button.config(state='normal');self.choose_button.config(state='normal')
