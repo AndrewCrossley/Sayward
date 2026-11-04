@@ -1,6 +1,6 @@
 # Sayward — required punctuation
 
-Status: active planning, 2026-11-03. The punctuation solution must be agreed before runtime implementation, as Andrew previously requested. Design: PUNCTUATION-PLAN.md.
+Status: active implementation, 2026-11-03. Andrew approved the fully local punctuation-only pass and narrow separator rule, with wording preserved on Windows and Linux. Design: PUNCTUATION-PLAN.md.
 
 Goal: Andrew can dictate ordinary English prose and receive consistently punctuated text, including sentence boundaries and question marks, while speech and text processing remain local.
 

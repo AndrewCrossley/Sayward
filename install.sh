@@ -42,6 +42,8 @@ if not Path(c.model).is_dir():
     except LocalEntryNotFoundError:
         snapshot_download(**args)
 PY
+echo 'Setting up the local punctuation model (~300 MB on first install). Speech/text stay local.'
+.venv/bin/python -m dictation.punctuation
 chmod +x bin/dictation
 ln -sfn "$dictation_root/bin/dictation" "$HOME/.local/bin/system-dictation"
 ln -sfn "$dictation_root/bin/dictation" "$HOME/.local/bin/sayward"

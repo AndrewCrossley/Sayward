@@ -1,6 +1,6 @@
 # Punctuation correction proposal — 2026-11-03
 
-This is a reviewable proposal, not an implemented fix. GOAL.md is the authoritative acceptance record. Andrew requires punctuation in ordinary prose and previously requested agreement on the approach before implementation.
+Andrew approved this approach on 2026-11-03. Implementation and qualification are in progress; no completed fix is claimed yet. GOAL.md is the authoritative acceptance record. Andrew requires punctuation in ordinary prose and previously requested agreement on the approach before implementation.
 
 ## What the current code does
 
@@ -27,6 +27,6 @@ The original author's [English ONNX punctuation/casing model](https://huggingfac
 
 These are acceptance targets, not observed model outputs. Include longer informal speech, contractions, proper nouns, code-like strings and multiple consecutive dictations in the corpus. Verify no duplicate punctuation, changed numbers, rewritten wording, accidental submission or loss of selected history after an error. Inspect actual clipboard/text-field results in both Windows and Mint VMs, including the packaged Windows installer.
 
-## Agreement needed
+## Approval
 
-Approve the fully local punctuation-only pass and the proposed narrow separator rule before changing runtime behavior. Cloud assistant integration and making the private GitHub repository public are separate decisions.
+Andrew approved the fully local punctuation-only pass and the narrow separator rule, preserving his wording on both Windows and Linux. Cloud assistant integration and making the private GitHub repository public are separate decisions.

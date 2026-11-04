@@ -14,6 +14,7 @@ from tkinter.scrolledtext import ScrolledText
 from .core import Config
 from .paths import config_path, assets
 from .session import Session
+from .punctuation import insertion_text, model_ready as punctuation_ready
 from .windows_native import Desktop, Singleton, U, C, W
 
 
@@ -48,6 +49,7 @@ class WindowsApp(Session):
         self.guide=None
         self.history_window=None
         self.setup_window=None
+        self.punctuation_window=None
         self.downloading=False
         self.status='Ready — Back thumb button to record'
         self.tray_frame=None
@@ -58,6 +60,8 @@ class WindowsApp(Session):
         self.root.after(1000,self.timer)
         if not self.ready_model:
             self.setup()
+        elif not punctuation_ready(self.config.punctuation_dir):
+            self.setup_punctuation()
 
     def dispatch(self, callback, *args):
         self.callbacks.put((callback,args))
@@ -75,7 +79,7 @@ class WindowsApp(Session):
             callback=None
             self.poll()
         except Exception as error:
-            self.report_error(error,completed=callback==self.finished)
+            self.report_error(error,completed=callback in (self.finished,self.punctuated))
         finally:
             if not self.closed:self.root.after(20,self.pump)
 
@@ -115,13 +119,16 @@ class WindowsApp(Session):
             return lambda *_: self.dispatch(callback)
         self.tray=pystray.Icon('Sayward',self.image('idle'),'Sayward — Ready',pystray.Menu(
             Item(lambda _:self.status,lambda *_:None,enabled=False),
-            Item(lambda _:'Stop and transcribe' if self.state=='recording' else 'Start recording',action(self.toggle),enabled=lambda _:self.state!='working'),
+            Item(lambda _:'Stop and transcribe' if self.state=='recording' else 'Retry punctuation' if self.pending else 'Start recording',action(self.toggle),enabled=lambda _:self.state!='working'),
             Item('Cancel recording',action(self.cancel),enabled=lambda _:self.state=='recording'),
             Item('Focus your destination, then press Forward to paste',lambda *_:None,enabled=False),
             Item('Recent transcripts (last 5)',action(self.open_history)),
             Item('Copy selected transcript',action(self.copy_last)),
             Item('How to use / Practice',action(self.help),default=True),
             Item('Model setup',action(self.setup)),
+            Item('Punctuation setup',action(self.setup_punctuation)),
+            Item('Retry punctuation for saved dictation',action(self.retry_punctuation),enabled=lambda _:bool(self.pending) and self.state not in ('recording','working') and not self.punctuation_downloading),
+            Item('Discard saved unprocessed dictation',action(self.discard_pending),enabled=lambda _:bool(self.pending) and self.state not in ('recording','working')),
             Item('Sound cues',action(self.toggle_sound),checked=lambda _:self.config.sound),
             Item('Unload model',action(self.unload),enabled=lambda _:self.state not in ('working','recording')),
             Item('Quit',action(self.quit)),
@@ -137,7 +144,8 @@ class WindowsApp(Session):
         self.tray.update_menu()
         if self.guide and self.guide.winfo_exists():
             self.practice_status.set(message)
-            self.practice_button.config(text='Stop and transcribe' if state=='recording' else 'Start recording',state='disabled' if state=='working' else 'normal')
+            self.practice_button.config(text='Stop and transcribe' if state=='recording' else 'Retry punctuation' if self.pending else 'Start recording',state='disabled' if state=='working' else 'normal')
+        self.punctuation_changed()
         return False
 
     def toggle(self):
@@ -208,7 +216,10 @@ class WindowsApp(Session):
             '5. Tray → Recent transcripts keeps your last five results for this session.\n\n'
             'Practice below. The green Start/Stop button does the same job as Back.\n'
             'Close this guide any time; reopen it through the tray. Dictation replaces the clipboard.\n'
-            'Audio/transcription stay local. Model setup downloads weights once.\n'
+            'Speech and punctuation stay local. Prose pastes include a separating space.\n'
+            'Use Punctuation setup for its one-time download. Failed dictation stays in memory.\n'
+            'Retry punctuation (Back) recovers it; Forward pastes completed history.\n'
+            'Discard saved unprocessed dictation clears a failed attempt. Quit clears all history.\n'
             'Elevated/secure fields are unsupported; use ordinary applications.')
         help_text=ScrolledText(box,height=8,wrap='word',font='TkDefaultFont',relief='flat')
         help_text.insert('1.0',instructions);help_text.config(state='disabled')
@@ -263,8 +274,29 @@ class WindowsApp(Session):
 
     def copy_last(self):
         if self.history.text:
-            try:self.desktop.copy(self.history.text);self.set_state(self.state,'Selected transcript copied')
+            try:self.desktop.copy(insertion_text(self.history.text));self.set_state(self.state,'Selected transcript copied')
             except Exception as exc:self.set_state('error',str(exc))
+
+    def setup_punctuation(self):
+        if self.punctuation_window and self.punctuation_window.winfo_exists():
+            self.punctuation_window.deiconify();self.punctuation_window.lift();self.punctuation_window.focus_force();return
+        self.punctuation_window=self.window('Punctuation setup',650,350)
+        box=ttk.Frame(self.punctuation_window,padding=18);box.pack(fill='both',expand=True)
+        self.punctuation_status=tk.StringVar()
+        self.punctuation_button=ttk.Button(box,text='Download / repair punctuation model (~300 MB)',command=self.download_punctuation)
+        ttk.Button(box,text='Close setup',command=self.punctuation_window.destroy).pack(side='bottom',fill='x')
+        self.punctuation_button.pack(side='bottom',fill='x',pady=8)
+        ttk.Label(box,textvariable=self.punctuation_status,wraplength=600).pack(side='bottom',fill='x',pady=12)
+        help_text=ScrolledText(box,height=5,wrap='word',font='TkDefaultFont',relief='flat')
+        help_text.insert('1.0','Download this local punctuation model (~300 MB) once. It adds punctuation without rewriting your words. Speech and text stay on this computer.\nIf processing fails, dictation stays in memory until Retry, Discard or Quit. After setup, choose Retry punctuation from the tray, then focus your destination and press Forward. Back also retries into the current text field.')
+        help_text.config(state='disabled');help_text.pack(fill='both',expand=True)
+        self.punctuation_changed()
+
+    def punctuation_changed(self):
+        if self.punctuation_window and self.punctuation_window.winfo_exists():
+            ready=punctuation_ready(self.config.punctuation_dir)
+            self.punctuation_status.set(self.punctuation_setup_message or ('Punctuation model ready — use Back to dictate.' if ready else 'Punctuation model not installed. Click Download to set it up.'))
+            self.punctuation_button.config(state='disabled' if self.punctuation_downloading or self.state in ('recording','working') else 'normal')
 
     def save(self):
         path=config_path();path.parent.mkdir(parents=True,exist_ok=True)
