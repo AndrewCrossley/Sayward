@@ -13,7 +13,7 @@ Done when:
 
 Excluded: cloud processing, assistant/tool integration, general rewriting or spelling correction, arbitrary reading of surrounding editor contents, multilingual punctuation expansion and repository visibility changes. A standalone additional punctuation model must be disclosed during setup; no automatic upload of speech or text.
 
-Proof: a before/after text corpus plus the existing generated-speech/virtual-microphone workflow, through native/browser text fields and Forward/history recovery. No runtime changes or tests are claimed by this planning update.
+Proof: a before/after text corpus plus the existing generated-speech/virtual-microphone workflow, through native/browser text fields and Forward/history recovery. Implementation is active; model/controller tests and native qualification evidence are recorded in VERIFICATION.md. Completion awaits the final supported-client checks and release.
 
 Punctuation-free normal prose is a defect, not an accepted preference. Earlier punctuation deferrals apply only to the historical release below and do not override this requirement.
 
