@@ -100,7 +100,13 @@ def test_copy_and_repeated_insertion_have_clean_history_and_one_separator():
 def test_download_validates_and_atomically_installs_without_partial_cache(monkeypatch,tmp_path):
     payload=b'public model fixture';digest=hashlib.sha256(payload).hexdigest()
     monkeypatch.setattr(p,'MODEL_FILES',{'model.onnx':('model.onnx',len(payload),digest)})
-    monkeypatch.setattr(p,'urlopen',lambda *args,**kwargs:io.BytesIO(payload))
+    def serve(*args,**kwargs):
+        import ssl
+        context=kwargs['context']
+        assert context.check_hostname and context.verify_mode==ssl.CERT_REQUIRED
+        assert context.cert_store_stats()['x509_ca']>0
+        return io.BytesIO(payload)
+    monkeypatch.setattr(p,'urlopen',serve)
     p.download_model(tmp_path)
     assert (tmp_path/'model.onnx').read_bytes()==payload
     assert not list(tmp_path.glob('*.part'))

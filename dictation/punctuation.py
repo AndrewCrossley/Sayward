@@ -75,6 +75,12 @@ def download_model(directory):
 
 
 def _download_files(directory):
+    import certifi
+    import ssl
+    context = ssl.create_default_context()
+    # Fresh Windows stores may not yet contain the model CDN's public roots.
+    # Extend system/enterprise roots with the bundled CA set; never disable TLS.
+    context.load_verify_locations(cafile=certifi.where())
     for name, (remote, size, digest) in MODEL_FILES.items():
         destination = directory/name
         if _valid(destination, size, digest):
@@ -84,7 +90,7 @@ def _download_files(directory):
             with tempfile.NamedTemporaryFile(dir=directory, prefix='sayward-punctuation-', suffix='.part', delete=False) as output:
                 temporary = Path(output.name)
                 url = f'https://huggingface.co/{MODEL_REPO}/resolve/{MODEL_REVISION}/{remote}'
-                with urlopen(url, timeout=30) as response:
+                with urlopen(url, timeout=30, context=context) as response:
                     total = 0
                     while chunk := response.read(1024*1024):
                         total += len(chunk)
