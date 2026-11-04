@@ -2,6 +2,8 @@
 
 Private mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
+Punctuation is required for ordinary prose. Version 0.2.0 currently passes through the recognition model's punctuation, which can be inconsistent; this is the active defect tracked in `GOAL.md`. The proposed local correction is in `PUNCTUATION-PLAN.md` and awaits agreement before runtime changes.
+
 ## Windows installer
 
 Download [Sayward 0.2.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.2.0) from this private repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
@@ -49,4 +51,4 @@ Linux: `uv sync` (add `--extra gpu` for private NVIDIA libraries), then `uv run 
 
 Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.2.0-x64.exe`. The frozen package bundles its MSVC runtime DLLs; a source-only Python environment needs the corresponding runtime dependencies in its DLL search path. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
 
-CI builds installer candidates as draft Releases; qualification is required before publishing a release. See `GOAL.md`, `MIGRATION.md`, `NAME-CHECK.md`, `VERIFICATION.md` and `qa/regressions.json`. Original standalone Git history is retained; the old Tessera preservation checkpoint remains separate. No AI-assistant/cloud integration or punctuation/spacing rewrite is included in this milestone.
+CI builds installer candidates as draft Releases; qualification is required before publishing a release. See `GOAL.md`, `MIGRATION.md`, `NAME-CHECK.md`, `VERIFICATION.md` and `qa/regressions.json`. Original standalone Git history is retained; the old Tessera preservation checkpoint remains separate. AI-assistant/cloud integration remains outside scope. Release 0.2.0 predates the current required-punctuation milestone.
