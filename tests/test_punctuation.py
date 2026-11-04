@@ -32,6 +32,8 @@ def test_required_final_marks_and_question_fallback():
     assert model.restore('please call getValue(A1)')=='Please call getValue(A1).'
     assert model.restore('Émile arrived')=='Émile arrived.'
     assert model.restore('été arrived')=='été arrived.'
+    assert model.restore('please use `foo` tomorrow')=='Please use `foo` tomorrow.'
+    assert model.restore('Can you open "https://example.test/report"')=='Can you open "https://example.test/report"?'
 
 
 def test_sentence_marks_and_casing_preserve_original_words():
@@ -70,7 +72,7 @@ def test_numbers_identifiers_paths_and_existing_marks_are_preserved():
     raw='the measurement is 3.14 on channel A1'
     assert renderer({21:'.',37:'.'}).restore(raw)=='The measurement is 3.14 on channel A1.'
     raw='please open https://example.test/report'
-    assert renderer({len(raw):'.'}).restore(raw)=='Please open https://example.test/report'
+    assert renderer({len(raw):'.'}).restore(raw)=='Please open "https://example.test/report".'
     assert renderer({5:'.',13:'?'}).restore('Hello, world!')=='Hello, world!'
 
 

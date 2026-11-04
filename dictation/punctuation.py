@@ -103,7 +103,7 @@ def is_literal(text):
     text = text.strip()
     if not text:
         return False
-    if text.startswith(('{', '[')) or '\n' in text or '\r' in text or '`' in text:
+    if text.startswith(('{', '[')) or '\n' in text or '\r' in text or re.fullmatch(r'`[^`]*`', text) or (text.startswith('```') and text.endswith('```')):
         return True
     # Recognizable code/call expressions and commands are literal, not prose.
     if re.fullmatch(r'[\w.$:]+\([^\n]*\)\s*;?', text) or re.fullmatch(r'[A-Za-z]\w*(?:\+\+|#)', text):
@@ -127,6 +127,22 @@ def insertion_text(text):
     return text if not text or is_literal(text) else text+' '
 
 
+def _last_link(text):
+    words = list(WORDS.finditer(text))
+    if not words:
+        return None
+    token = words[-1].group()
+    link = LINK.search(token)
+    if not link:
+        return None
+    value = link.group()
+    bare = link.start() == 0 and value[-1] not in QUOTES+'`'
+    for left, right in [('(', ')'), ('[', ']'), ('{', '}')]:
+        if value.endswith(right) and value.count(right) > value.count(left):
+            bare = False
+    return value, bare
+
+
 def validate_words(original, result):
     original, result = original.strip(), result.strip()
     failure = 'Punctuation processing changed wording; original dictation retained'
@@ -134,6 +150,14 @@ def validate_words(original, result):
         if result != original:
             raise RuntimeError(failure)
         return
+    # A final bare URI in prose is quoted so sentence punctuation cannot become
+    # part of its address. Only this exact, anchored quote insertion is allowed.
+    last_link = _last_link(original)
+    if last_link and last_link[1] and result[-1:] in TERMINAL:
+        value = last_link[0]
+        suffix = '"'+value+'"'+result[-1]
+        if result.endswith(suffix):
+            result = result[:-len(suffix)]+value+result[-1]
     pattern = r"\w+(?:[.,'’/_:@+\-]\w+)*"
     before, after = re.findall(pattern, original), re.findall(pattern, result)
     if len(before) != len(after):
@@ -223,11 +247,16 @@ class Punctuator:
         source_tail = text.rstrip(CLOSERS)
         tail = result.rstrip(QUOTES)
         last_word = list(WORDS.finditer(text))[-1]
-        protected_end = LINK.fullmatch(last_word.group())
-        if not protected_end and not (source_tail and source_tail[-1] in '.,;:!?…'):
+        final_link = _last_link(text)
+        if not (source_tail and source_tail[-1] in '.,;:!?…'):
             sentence = re.split(r'[.!?](?:[\"\'”’)]*)\s+', result)[-1].strip()
             end_mark = '?' if QUESTION.match(sentence.lstrip('\"\'“‘([')) else '.'
-            if tail and tail[-1] not in '.,;:!?…':
+            if final_link:
+                value, bare = final_link
+                if bare:
+                    result = result[:-len(value)]+'"'+value+'"'
+                result += end_mark
+            elif tail and tail[-1] not in '.,;:!?…':
                 result = result[:len(tail)]+end_mark+result[len(tail):]
         validate_words(text, result)
         return result
