@@ -131,5 +131,86 @@
       "Reinstall and sign in again"
     ],
     "expected": "A single listener starts at login with no model worker before first capture; unrelated installations and retained user data are untouched."
+  },
+  {
+    "id": "PUNCT-001",
+    "title": "Local punctuation preserves words and internal sentence boundaries",
+    "automated": "tests/test_punctuation.py::test_real_offline_model_preserves_words_and_restores_reviewed_corpus",
+    "steps": [
+      "Dictate a statement followed by a question",
+      "Wait for processing",
+      "Inspect native/browser text and history"
+    ],
+    "expected": "Punctuation is present, wording is preserved, and the same completed result appears in every recovery surface."
+  },
+  {
+    "id": "PUNCT-002",
+    "title": "Missing model keeps unprocessed dictation recoverable without automatic paste",
+    "automated": "tests/test_punctuation_session.py::test_punctuation_failure_keeps_raw_and_selected_history_then_retry_needs_no_audio",
+    "steps": [
+      "Start with speech ready and punctuation missing",
+      "Record and stop",
+      "Observe saved error and unchanged target",
+      "Download through Punctuation setup",
+      "Tray Retry while setup is focused",
+      "Focus destination and Forward"
+    ],
+    "expected": "No raw automatic paste or history loss; Retry does not transcribe audio again or paste into setup, and Forward recovers the completed result."
+  },
+  {
+    "id": "PUNCT-003",
+    "title": "Question predictions correct default recognition periods safely",
+    "automated": "tests/test_punctuation.py::test_required_final_marks_and_question_fallback",
+    "steps": [
+      "Dictate Can you open the report",
+      "Inspect final question mark",
+      "Check a declarative What is important is safety. and Please note: corpus cases"
+    ],
+    "expected": "Model-predicted questions gain question marks; fallback does not reinterpret an existing statement or header."
+  },
+  {
+    "id": "PUNCT-004",
+    "title": "Literal data and protected spans stay intact",
+    "automated": "tests/test_punctuation.py::test_numbers_identifiers_paths_and_existing_marks_are_preserved",
+    "steps": [
+      "Run the fixed corpus with decimals, IDs, code/calls, inline multiword code and links",
+      "Copy/Forward completed prose"
+    ],
+    "expected": "No word joins, numeric changes or code corruption; sentence marks may follow protected spans, never appear inside them."
+  },
+  {
+    "id": "SEP-001",
+    "title": "Prose insertion and Copy add one trailing separator",
+    "automated": "tests/test_punctuation.py::test_copy_and_repeated_insertion_have_clean_history_and_one_separator",
+    "steps": [
+      "Complete two dictations in one field without adding spaces",
+      "Copy a selected result",
+      "Replace clipboard externally",
+      "Forward again"
+    ],
+    "expected": "Consecutive results are separated, history stays trimmed, recovered text ignores external clipboard, and no Enter/newline is generated. Recognized literals get no added separator."
+  },
+  {
+    "id": "PUNCT-TLS-001",
+    "title": "Clean Windows setup validates the model CDN certificate",
+    "automated": "tests/test_punctuation.py::test_download_validates_and_atomically_installs_without_partial_cache",
+    "steps": [
+      "Install on a clean Windows client",
+      "Open Punctuation setup and Download",
+      "Wait for ready",
+      "Dictate offline"
+    ],
+    "expected": "Bundled public roots extend the system trust store; hostname/certificate validation remains enabled and verified files work in the frozen app."
+  },
+  {
+    "id": "PUNCT-PART-001",
+    "title": "Interrupted setup safely retires partial model files",
+    "automated": "tests/test_punctuation.py::test_interrupted_daemon_download_is_safely_reclaimed_on_next_setup",
+    "steps": [
+      "Quit while model setup is downloading",
+      "Relaunch and explicitly download again",
+      "Try a simultaneous second setup"
+    ],
+    "expected": "OS lock protects an active downloader; after interruption the next lock owner removes its stale partial file, and only hash-verified complete files become usable."
   }
 ]

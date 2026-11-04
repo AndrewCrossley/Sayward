@@ -12,6 +12,11 @@ def cache_directory():
     return str(data_directory()/'models') if sys.platform == 'win32' else str(Path.home()/'.cache/system-dictation/models')
 
 
+def punctuation_directory():
+    root = data_directory() if sys.platform == 'win32' else Path.home()/'.cache/system-dictation'
+    return str(root/'punctuation')
+
+
 def config_path():
     default = data_directory()/'config.json' if sys.platform == 'win32' else Path.home()/'.config/system-dictation/config.json'
     return Path(os.environ.get('DICTATION_CONFIG', str(default)))

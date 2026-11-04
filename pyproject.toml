@@ -1,6 +1,6 @@
 [project]
 name = "sayward"
-version = "0.2.0"
+version = "0.3.0"
 description = "Private mouse-toggle local dictation for Windows and Linux X11"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,6 +9,9 @@ dependencies = [
   "av==16.0.1",
   "numpy>=2,<3",
   "sounddevice==0.5.2",
+  "onnxruntime>=1.20,<2",
+  "tokenizers>=0.21,<1",
+  "certifi>=2025",
   "python-xlib==0.33; sys_platform == 'linux'",
   "pystray==0.19.5; sys_platform == 'win32'",
   "Pillow>=11,<13; sys_platform == 'win32'",

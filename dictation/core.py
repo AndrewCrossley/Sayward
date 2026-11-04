@@ -11,13 +11,14 @@ import tempfile
 import threading
 import time
 import wave
-from .paths import cache_directory
+from .paths import cache_directory, punctuation_directory
 
 
 @dataclass
 class Config:
     model: str = "medium"
     cache_dir: str = field(default_factory=cache_directory)
+    punctuation_dir: str = field(default_factory=punctuation_directory)
     button: int = 8
     paste_button: int = 9
     gpu_min_free_mb: int = 3072

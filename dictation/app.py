@@ -15,6 +15,7 @@ from gi.repository import Gtk, GLib, GdkX11, AyatanaAppIndicator3
 from .core import Config, Engine, Recorder, TranscriptHistory
 from .desktop import Desktop
 from .session import Session
+from .punctuation import insertion_text, model_ready as punctuation_ready
 
 
 class App(Session):
@@ -30,6 +31,7 @@ class App(Session):
         self.practice_window = None
         self.history_window = None
         self.history_refreshing = False
+        self.punctuation_window = None
         self.meter_level, self.meter_frame = 0.0, None
         self.recording_message = ""
         self.meter_message = None
@@ -45,6 +47,9 @@ class App(Session):
         self.item("Recent transcripts (last 5)", lambda _: self.open_history())
         self.item("Copy selected transcript", lambda _: self.copy_last())
         self.item("How to use / Practice", lambda _: self.help())
+        self.item("Punctuation setup", lambda _: self.setup_punctuation())
+        self.retry_item = self.item("Retry punctuation for saved dictation", lambda _: self.retry_punctuation())
+        self.discard_item = self.item("Discard saved unprocessed dictation", lambda _: self.discard_pending())
         sounds = Gtk.CheckMenuItem(label="Sound cues")
         sounds.set_active(config.sound)
         sounds.connect("toggled", lambda item: setattr(self.config, "sound", item.get_active()))
@@ -59,6 +64,8 @@ class App(Session):
         GLib.timeout_add_seconds(1, self.tick)
         for sig in (signal.SIGTERM, signal.SIGINT):
             GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, self.quit)
+        if not punctuation_ready(config.punctuation_dir):
+            GLib.idle_add(self.setup_punctuation)
 
     def icon(self, state):
         return str(Path(__file__).parent.parent / "icons" / f"{state}.svg")
@@ -82,14 +89,17 @@ class App(Session):
         self.status_item.set_label(message)
         self.indicator.set_icon_full(self.icon(state), message)
         self.indicator.set_title("Sayward — " + message)
-        self.toggle_item.set_label("Stop and transcribe" if state == "recording" else "Start recording")
+        self.toggle_item.set_label("Stop and transcribe" if state == "recording" else "Retry punctuation" if self.pending else "Start recording")
         self.toggle_item.set_sensitive(state != "working")
         self.cancel_item.set_sensitive(state == "recording")
         self.paste_item.set_sensitive(bool(self.history.text) and state not in ("recording", "working"))
+        self.retry_item.set_sensitive(bool(self.pending) and state not in ('recording', 'working') and not self.punctuation_downloading)
+        self.discard_item.set_sensitive(bool(self.pending) and state not in ('recording', 'working'))
         if self.practice_window:
             self.practice_status.set_text(message)
             self.practice_toggle.set_label(self.toggle_item.get_label())
             self.practice_toggle.set_sensitive(state != "working")
+        self.punctuation_changed()
         return False
 
     def cue(self, event):
@@ -137,9 +147,46 @@ class App(Session):
         from gi.repository import Gdk
         if self.history.text:
             cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
-            cb.set_text(self.history.text, -1)
+            cb.set_text(insertion_text(self.history.text), -1)
             cb.store()
             self.set_state(self.state, "Selected transcript copied to clipboard")
+
+    def setup_punctuation(self):
+        if self.punctuation_window:
+            stamp = GdkX11.x11_get_server_time(self.punctuation_window.get_window())
+            self.punctuation_window.present_with_time(stamp)
+            return False
+        window = Gtk.Window(title='Sayward — Punctuation setup')
+        window.set_default_size(610, 300)
+        window.set_position(Gtk.WindowPosition.CENTER)
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12, margin=18)
+        window.add(box)
+        label = Gtk.Label(label='Download the local punctuation model (~300 MB) once.\nIt adds punctuation without rewriting your words. Speech and text stay on this computer.\nIf processing failed, your dictation stays in memory until Retry, Discard or Quit.')
+        label.set_line_wrap(True);label.set_max_width_chars(76);label.set_xalign(0)
+        box.pack_start(label, False, False, 0)
+        self.punctuation_status = Gtk.Label()
+        self.punctuation_status.set_line_wrap(True);self.punctuation_status.set_max_width_chars(76);self.punctuation_status.set_xalign(0)
+        box.pack_start(self.punctuation_status, True, True, 0)
+        self.punctuation_button = Gtk.Button(label='Download / repair punctuation model (~300 MB)')
+        self.punctuation_button.get_style_context().add_class('suggested-action')
+        self.punctuation_button.connect('clicked', lambda _: self.download_punctuation())
+        box.pack_start(self.punctuation_button, False, False, 0)
+        close = Gtk.Button(label='Close setup');close.connect('clicked', lambda _: window.destroy())
+        box.pack_start(close, False, False, 0)
+        def destroyed(*_): self.punctuation_window = None
+        window.connect('destroy', destroyed)
+        self.punctuation_window = window
+        self.punctuation_changed()
+        window.show_all()
+        stamp = GdkX11.x11_get_server_time(window.get_window())
+        window.present_with_time(stamp)
+        return False
+
+    def punctuation_changed(self):
+        if self.punctuation_window:
+            ready = punctuation_ready(self.config.punctuation_dir)
+            self.punctuation_status.set_text(self.punctuation_setup_message or ('Punctuation model ready — use Back to dictate.' if ready else 'Punctuation model not installed. Click Download to set it up.'))
+            self.punctuation_button.set_sensitive(not self.punctuation_downloading and self.state not in ('recording', 'working'))
 
     def open_history(self):
         if self.history_window:
@@ -235,6 +282,10 @@ class App(Session):
             "To paste again, focus the field and press the front thumb / Forward button.\n"
             "Choose older results through Recent transcripts in the tray (last five, this session).\n"
             "A dim icon and No mic input message mean check your microphone or mute switch.\n"
+            "Punctuation runs locally and prose pastes include a separating space.\n"
+            "Use tray Punctuation setup for the one-time model download.\n"
+            "On failure, Retry punctuation (Back) recovers saved words; Forward pastes completed history.\n"
+            "Discard saved unprocessed dictation clears a failed attempt. Quit clears all history.\n"
             "Dictation replaces the clipboard. Audio is temporary and speech stays local."
         ))
         label.set_line_wrap(True)

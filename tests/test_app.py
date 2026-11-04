@@ -30,13 +30,15 @@ def test_failed_auto_paste_still_keeps_new_result_and_forward_uses_selected_text
     def reject(*_):
         raise RuntimeError('Focus changed')
     app.desktop = SimpleNamespace(paste=reject)
-    app.finished(('Latest words', 'cpu'), None)
-    assert app.history.items == ['Latest words', 'Older words']
+    app.pending = ('Latest words', 'cpu')
+    app.punctuation_auto_paste = True
+    app.punctuated('Latest words.', None)
+    assert app.history.items == ['Latest words.', 'Older words']
     app.history.select(1)
     calls = []
     app.desktop = SimpleNamespace(focus=lambda: 42, paste=lambda *args: calls.append(args))
     app.paste_last()
-    assert calls == [('Older words', 42)]
+    assert calls == [('Older words ', 42)]
 
 
 def test_empty_or_failed_transcription_does_not_erase_selected_history():

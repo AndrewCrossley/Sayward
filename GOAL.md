@@ -1,4 +1,23 @@
-# Sayward — Windows installer and Linux parity
+# Sayward — required punctuation
+
+Status: implementation and qualification complete, 2026-11-04; publication pending. Andrew approved the fully local punctuation-only pass and narrow separator rule, with wording preserved on Windows and Linux. Design: PUNCTUATION-PLAN.md.
+
+Goal: Andrew can dictate ordinary English prose and receive consistently punctuated text, including sentence boundaries and question marks, while speech and text processing remain local.
+
+Done when:
+1. A deliberately unpunctuated prose transcript gains appropriate sentence punctuation, including internal sentence boundaries; existing correct punctuation is retained without duplicate marks.
+2. Processing preserves spoken wording, names, numbers, contractions and technical strings; it adds punctuation and permitted sentence casing rather than paraphrasing.
+3. Automatic insertion, history, Copy and Forward recovery use the same completed result. Silent input stays empty; failed cleanup preserves recoverable text and clearly reports the failure instead of silently inserting an unprocessed result.
+4. Short/long prose, statements/questions, consecutive recordings, existing punctuation, decimal values and protected strings have meaningful regressions. The agreed insertion-spacing rule is exercised separately from punctuation quality.
+5. Offline operation and acceptable cleanup latency are demonstrated on CPU; real Windows and Mint workflows and the Windows installer are qualified before a new release is recommended.
+
+Excluded: cloud processing, assistant/tool integration, general rewriting or spelling correction, arbitrary reading of surrounding editor contents, multilingual punctuation expansion and repository visibility changes. A standalone additional punctuation model must be disclosed during setup; no automatic upload of speech or text.
+
+Proof: a before/after text corpus plus the existing generated-speech/virtual-microphone workflow, through native/browser text fields and Forward/history recovery. All five acceptance conditions are demonstrated on Windows 10 and Mint; the final runtime passed 83 tests with 11 Windows-only skips, real offline model corpus, independent source review and native installer/dictation/recovery/lifecycle checks. VERIFICATION.md records exact evidence and the nonblocking Windows 11 audio-qualification gap. Completion awaits publication of the verified assets.
+
+Punctuation-free normal prose is a defect, not an accepted preference. Earlier punctuation deferrals apply only to the historical release below and do not override this requirement.
+
+## Completed milestone — Windows installer and Linux parity
 
 Status: complete / frozen, 2026-10-24. Published release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.2.0. Private repository: AndrewCrossley/Sayward. Original installations stay untouched.
 
@@ -11,7 +30,7 @@ Done when:
 4. Shared offline workers retain GPU admission, CUDA failure-to-CPU retry and idle unloading. Windows uses CUDA when compatible CUDA/cuDNN libraries exist, otherwise CPU. Audio is temporary and history is memory-only.
 5. Meaningful engine/controller tests pass; real Windows installer and Mint workflows are exercised in admin-verified VMs. Artifacts, recovery instructions and limits are published.
 
-Excluded: cloud assistant, punctuation/spacing changes, Tessera migration, macOS, Wayland, ARM Windows, signing-certificate purchases, arbitrary elevated/secure targets. Windows 10/11 x64 and Mint Cinnamon X11 were exercised; Windows NVIDIA hardware remains explicitly untested.
+Excluded from release 0.2.0: cloud assistant, punctuation/spacing implementation, Tessera migration, macOS, Wayland, ARM Windows, signing-certificate purchases, arbitrary elevated/secure targets. This historical scope is superseded for punctuation by the active milestone above. Windows 10/11 x64 and Mint Cinnamon X11 were exercised; Windows NVIDIA hardware remains explicitly untested.
 
 Proof: protocol/controller regressions; native input/clipboard tests; installer install/launch/startup/uninstall; browser/native/terminal transcription and recovery; level feedback; cancel/restart/model setup error recovery. No host GUI or installed-app changes.
 
