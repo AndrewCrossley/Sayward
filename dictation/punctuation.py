@@ -17,7 +17,7 @@ MODEL_FILES = {
     'config.json': ('config.json', 2110, 'f457c77954f0720ff2c0624b92714fb551bd19c42fba0625ee7af1740df49e05'),
 }
 WORDS = re.compile(r'\S+')
-LINK = re.compile(r'(?:https?://|www\.)\S+|[^\s@]+@[^\s@]+\.[^\s@]+|(?:[A-Za-z]:[\\/]|/|~/)\S+', re.I)
+LINK = re.compile(r'(?:https?://|www\.)\S+|[^\s@]+@[^\s@]+\.[^\s@]+|(?<!\w)(?:\.{1,2}[\\/]|[A-Za-z]:[\\/]|\\\\|/|~/)\S+', re.I)
 PROTECTED = re.compile(LINK.pattern+r'|`[^`]*`|\b[\w.$:]+\([^()\r\n]*\)|\b[\w.-]+\.(?:json|yaml|yml|toml|py|js|ts|sql|csv|txt|md|log|exe|dll|onnx|wav|mp3|html|xml|sh|ps1)\b|\b(?:[A-Za-z]\.){2,}|\b(?:Mr|Mrs|Ms|Dr|Prof|etc)\.', re.I)
 CLOSERS = '\"\'”’)]}'
 QUOTES = '\"\'”’'

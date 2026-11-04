@@ -63,6 +63,7 @@ def test_validation_rejects_joined_words_changed_numbers_and_damaged_literals(ra
  '{"sensor":"A1","value":3.14}','[1,2,3]','value = 3.14','`getValue(A1)`',
  'foo()','getValue(A1)','C++','C#','python -m pytest tests','git --version','a + b',
  'foo()\nbar()','def foo():\n    return 3.14',
+ './report.txt','../config.yaml',r'\\server\share\report.txt',
 ])
 def test_literals_are_unchanged_without_loading_a_model(raw):
     model=p.Punctuator('/missing')
