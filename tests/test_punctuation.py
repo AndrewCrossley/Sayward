@@ -2,6 +2,8 @@ import hashlib
 import io
 import json
 import os
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 import pytest
@@ -28,6 +30,8 @@ def test_required_final_marks_and_question_fallback():
     assert model.restore('Warning:')=='Warning:'
     assert model.restore('it worked (after a restart)')=='It worked (after a restart).'
     assert model.restore('please call getValue(A1)')=='Please call getValue(A1).'
+    assert model.restore('Émile arrived')=='Émile arrived.'
+    assert model.restore('été arrived')=='été arrived.'
 
 
 def test_sentence_marks_and_casing_preserve_original_words():
@@ -100,6 +104,28 @@ def test_failed_download_retains_previous_file_and_removes_partial(monkeypatch,t
         p.download_model(tmp_path)
     assert (tmp_path/'model.onnx').read_bytes()==b'old incomplete file'
     assert not list(tmp_path.glob('*.part'))
+
+
+def test_interrupted_daemon_download_is_safely_reclaimed_on_next_setup(monkeypatch,tmp_path):
+    script='''
+import io,sys,threading,time
+from dictation import punctuation as p
+entered=threading.Event()
+class Slow(io.BytesIO):
+    def read(self,*args):
+        entered.set();time.sleep(30);return b''
+p.urlopen=lambda *args,**kwargs:Slow()
+threading.Thread(target=lambda:p.download_model(sys.argv[1]),daemon=True).start()
+assert entered.wait(5)
+'''
+    subprocess.run([sys.executable,'-c',script,str(tmp_path)],check=True,timeout=10)
+    assert list(tmp_path.glob('sayward-punctuation-*.part'))
+    payload=b'public retry'
+    monkeypatch.setattr(p,'MODEL_FILES',{'model.onnx':('model.onnx',len(payload),hashlib.sha256(payload).hexdigest())})
+    monkeypatch.setattr(p,'urlopen',lambda *args,**kwargs:io.BytesIO(payload))
+    p.download_model(tmp_path)
+    assert not list(tmp_path.glob('*.part'))
+    assert (tmp_path/'model.onnx').read_bytes()==payload
 
 
 @pytest.mark.skipif(not os.environ.get('SAYWARD_PUNCTUATION_MODEL'),reason='Pinned public model integration; opt in with local weights')

@@ -193,9 +193,8 @@ class Punctuator:
             if literal or has_mark or mark not in ('.', ',', '?', ':', '-'):
                 mark = ''
             if sentence_start and not literal:
-                letter = re.search(r'[a-zA-Z]', token)
-                if letter and not any(c.isupper() for c in token[letter.start()+1:]):
-                    position = letter.start()
+                position = next((i for i, c in enumerate(token) if c.isalpha()), None)
+                if position is not None and token[position] in 'abcdefghijklmnopqrstuvwxyz' and not any(c.isupper() for c in token[position+1:]):
                     token = token[:position]+token[position].upper()+token[position+1:]
             pieces.append(text[previous:start]+token+(' -' if mark == '-' else mark))
             previous = end
