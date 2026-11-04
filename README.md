@@ -2,11 +2,11 @@
 
 Private mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
-Punctuation is required for ordinary prose. The 0.3.0 candidate adds fully local punctuation restoration before history or insertion, with word-preservation validation and one trailing separating space for prose. Native qualification is in progress; published 0.2.0 still passes through inconsistent recognition punctuation. See `GOAL.md` for current status.
+Punctuation is required for ordinary prose. Release 0.3.0 adds fully local punctuation restoration before history or insertion, with word-preservation validation and one trailing separating space for prose. Windows 10 and Mint workflows passed native qualification; Windows 11 model setup passed, with full 0.3.0 audio qualification still incomplete. See `GOAL.md` for current status.
 
 ## Windows installer
 
-Download [Sayward 0.2.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.2.0) from this private repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
+Download [Sayward 0.3.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0) from this private repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
 
 First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. Punctuation setup then downloads its separate local model (~300 MB). Both setup dialogs can be reopened from the tray. Once installed, recognition and punctuation need no internet; audio/text are never sent to a service.
 
@@ -14,7 +14,7 @@ The installer is unsigned, so Windows may show an unknown-publisher/SmartScreen 
 
 Configuration and downloaded models live in `%LOCALAPPDATA%\Sayward`. Uninstall through Windows Settings or the Start-menu uninstall entry; login startup and installed program files are removed, while configuration/model downloads are retained.
 
-Windows 11 and Windows 10 x64 were exercised in clean, admin-verified VMs, including ordinary-user dictation, recovery and installer lifecycle. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
+Release 0.3.0 ordinary-user dictation, punctuation, Copy/Forward recovery and Quit/relaunch passed on Windows 10 x64 in an admin-verified VM. Windows 11 final model download/setup passed, but its new audio workflow remains unqualified; see VERIFICATION.md. Historical 0.2.0 lifecycle evidence is retained separately. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
 
 ## Linux
 
