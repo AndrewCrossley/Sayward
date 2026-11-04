@@ -283,7 +283,7 @@ class WindowsApp(Session):
         self.punctuation_window=self.window('Punctuation setup',650,350)
         box=ttk.Frame(self.punctuation_window,padding=18);box.pack(fill='both',expand=True)
         self.punctuation_status=tk.StringVar()
-        self.punctuation_button=ttk.Button(box,text='Download / repair punctuation model (~300 MB)',command=self.download_punctuation)
+        self.punctuation_button=tk.Button(box,text='Download / repair punctuation model (~300 MB)',background='#187944',foreground='white',command=self.download_punctuation)
         ttk.Button(box,text='Close setup',command=self.punctuation_window.destroy).pack(side='bottom',fill='x')
         self.punctuation_button.pack(side='bottom',fill='x',pady=8)
         ttk.Label(box,textvariable=self.punctuation_status,wraplength=600).pack(side='bottom',fill='x',pady=12)
@@ -316,7 +316,7 @@ class WindowsApp(Session):
         box=ttk.Frame(self.setup_window,padding=18);box.pack(fill='both',expand=True)
         ttk.Label(box,text='Choose your local speech model',font=('Segoe UI',14,'bold')).pack(anchor='w')
         details=ScrolledText(box,height=5,wrap='word',font='TkDefaultFont',relief='flat')
-        details.insert('1.0','Medium is the original quality setting (~1.5 GB download). Small uses less disk and is faster on CPU.\nInternet is needed only to download model files from Hugging Face. Your audio is never uploaded.\nCompatible NVIDIA CUDA 12/cuDNN 9 is used when available; otherwise CPU is automatic.')
+        details.insert('1.0','Medium is the original quality setting (~1.5 GB download). Small uses less disk and is faster on CPU.\nInternet is needed only to download model files from Hugging Face. Your audio is never uploaded.\nAfter speech setup, Punctuation setup downloads its separate local model (~300 MB).\nCompatible NVIDIA CUDA 12/cuDNN 9 is used when available; otherwise CPU is automatic.')
         details.config(state='disabled')
         self.model_choice=ttk.Combobox(box,values=('medium','small','base','tiny'),state='readonly')
         self.model_choice.set(self.config.model if self.config.model in ('medium','small','base','tiny') else 'medium')
@@ -343,6 +343,7 @@ class WindowsApp(Session):
         if not model_ready(self.config):
             self.config.model=old;self.setup_status.set('Folder needs model.bin, config.json, tokenizer.json and vocabulary.txt/json.');return
         self.ready_model=True;self.save();self.unload();self.setup_status.set('Model ready. Close setup and use Back to record.')
+        if not punctuation_ready(self.config.punctuation_dir):self.setup_punctuation()
 
     def download(self):
         if self.downloading or self.state in ('recording','working'):return
@@ -375,6 +376,7 @@ class WindowsApp(Session):
             self.download_button.config(state='normal');self.choose_button.config(state='normal')
             self.setup_status.set(('Download failed: '+error) if error else 'Model ready. Close setup and use Back to record.')
         self.set_state('error' if error else 'idle','Model download failed — open Model setup' if error else 'Model ready — Back thumb button to record')
+        if not error and not punctuation_ready(self.config.punctuation_dir):self.setup_punctuation()
 
     def quit(self):
         if self.closed:return

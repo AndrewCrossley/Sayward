@@ -43,6 +43,17 @@ def test_sentence_marks_and_casing_preserve_original_words():
         p.validate_words(raw,result.replace('successfully','incorrectly'))
 
 
+@pytest.mark.parametrize('raw,result',[
+ ('read a bout','Read about.'),('the value is 3.14','The value is 314.'),
+ ('please call getValue(A1)','Please call getValue(A1.)'),
+ ('keep a1 unchanged','Keep A1 unchanged.'),('Émile arrived','ÉMile arrived.'),
+ ('foo()','Foo(.)'),('the fee is $100','The fee is 100.'),
+])
+def test_validation_rejects_joined_words_changed_numbers_and_damaged_literals(raw,result):
+    with pytest.raises(RuntimeError,match='changed wording'):
+        p.validate_words(raw,result)
+
+
 @pytest.mark.parametrize('raw',[
  'https://example.test/report','andrew@example.test','C:\\Projects\\Sayward\\config.json',
  '/home/andrew/config.json','config.json','example_value','fooBar','A1','3.14',

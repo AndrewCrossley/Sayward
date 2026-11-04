@@ -128,10 +128,29 @@ def insertion_text(text):
 
 
 def validate_words(original, result):
+    original, result = original.strip(), result.strip()
+    failure = 'Punctuation processing changed wording; original dictation retained'
+    if is_literal(original):
+        if result != original:
+            raise RuntimeError(failure)
+        return
+    pattern = r"\w+(?:[.,'’/_:@+\-]\w+)*"
+    before, after = re.findall(pattern, original), re.findall(pattern, result)
+    if len(before) != len(after):
+        raise RuntimeError(failure)
+    for word, replacement in zip(before, after):
+        if word == replacement:
+            continue
+        may_capitalize = word[0] in 'abcdefghijklmnopqrstuvwxyz' and not any(c.isdigit() or c.isupper() for c in word[1:])
+        if not may_capitalize or replacement != word[0].upper()+word[1:]:
+            raise RuntimeError(failure)
     def content(value):
         return re.sub(r'[.,!?;:\s-]', '', value).casefold()
     if content(original) != content(result):
-        raise RuntimeError('Punctuation processing changed wording; original dictation retained')
+        raise RuntimeError(failure)
+    for protected in PROTECTED.finditer(original):
+        if protected.group() not in result:
+            raise RuntimeError(failure)
 
 
 class Punctuator:
