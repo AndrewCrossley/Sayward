@@ -80,6 +80,10 @@ def test_numbers_identifiers_paths_and_existing_marks_are_preserved():
     assert renderer({raw.index('A1')+2:'.'}).restore(raw)=='Check A1. It failed.'
     raw='please call getValue(A1) it failed'
     assert renderer({raw.index(')')+1:'.'}).restore(raw)=='Please call getValue(A1). It failed.'
+    raw='please keep `hello world` unchanged'
+    assert renderer({raw.index('hello')+5:','}).restore(raw)=='Please keep `hello world` unchanged.'
+    raw='call open(the report) tomorrow'
+    assert renderer({raw.index('the')+3:','}).restore(raw)=='Call open(the report) tomorrow.'
 
 
 def test_copy_and_repeated_insertion_have_clean_history_and_one_separator():

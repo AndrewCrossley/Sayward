@@ -239,7 +239,8 @@ class Punctuator:
             existing = token.rstrip(CLOSERS)
             has_mark = bool(existing) and existing[-1] in '.,;:!?…'
             mark = marks.get(end, '0')
-            if LINK.search(token) or has_mark or mark not in ('.', ',', '?', ':', '-'):
+            inside_protected = any(a < end < b for a, b in protected)
+            if inside_protected or LINK.search(token) or has_mark or mark not in ('.', ',', '?', ':', '-'):
                 mark = ''
             if sentence_start and not literal:
                 position = next((i for i, c in enumerate(token) if c.isalpha()), None)
