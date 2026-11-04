@@ -153,7 +153,7 @@ def validate_words(original, result):
     # A final bare URI in prose is quoted so sentence punctuation cannot become
     # part of its address. Only this exact, anchored quote insertion is allowed.
     last_link = _last_link(original)
-    if last_link and last_link[1] and result[-1:] in TERMINAL:
+    if last_link and last_link[1] and result and result[-1] in TERMINAL:
         value = last_link[0]
         suffix = '"'+value+'"'+result[-1]
         if result.endswith(suffix):
@@ -233,7 +233,7 @@ class Punctuator:
             existing = token.rstrip(CLOSERS)
             has_mark = bool(existing) and existing[-1] in '.,;:!?…'
             mark = marks.get(end, '0')
-            if literal or has_mark or mark not in ('.', ',', '?', ':', '-'):
+            if LINK.search(token) or has_mark or mark not in ('.', ',', '?', ':', '-'):
                 mark = ''
             if sentence_start and not literal:
                 position = next((i for i, c in enumerate(token) if c.isalpha()), None)
