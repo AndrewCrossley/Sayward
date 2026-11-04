@@ -42,6 +42,18 @@ def test_failed_completion_unlocks_controls_for_recovery():
     assert changes[0][0]=='error'
 
 
+def test_copy_failure_does_not_unlock_inflight_punctuation():
+    from dictation.windows_app import WindowsApp
+    app=WindowsApp.__new__(WindowsApp)
+    app.closed=False;app.state='working'
+    app.history=SimpleNamespace(text='Earlier result.')
+    def busy(_):raise OSError('Clipboard is busy')
+    app.desktop=SimpleNamespace(copy=busy)
+    changes=[];app.set_state=lambda *args:changes.append(args)
+    app.copy_last()
+    assert changes[0][0]=='working'
+
+
 def test_failed_settings_write_preserves_previous_config(monkeypatch,tmp_path):
     from dictation import windows_app
     from dictation.core import Config

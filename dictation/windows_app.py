@@ -275,7 +275,7 @@ class WindowsApp(Session):
     def copy_last(self):
         if self.history.text:
             try:self.desktop.copy(insertion_text(self.history.text));self.set_state(self.state,'Selected transcript copied')
-            except Exception as exc:self.set_state('error',str(exc))
+            except Exception as exc:self.report_error(exc)
 
     def setup_punctuation(self):
         if self.punctuation_window and self.punctuation_window.winfo_exists():
