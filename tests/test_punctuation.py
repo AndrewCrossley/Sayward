@@ -35,6 +35,8 @@ def test_required_final_marks_and_question_fallback():
     assert model.restore('please use `foo` tomorrow')=='Please use `foo` tomorrow.'
     assert model.restore('Can you open "https://example.test/report"')=='Can you open "https://example.test/report"?'
     assert model.restore('hello\nworld')=='Hello\nworld.'
+    raw='Can you open the report.'
+    assert renderer({len(raw):'?'}).restore(raw)=='Can you open the report?'
 
 
 def test_sentence_marks_and_casing_preserve_original_words():
@@ -161,6 +163,8 @@ def test_real_offline_model_preserves_words_and_restores_reviewed_corpus(monkeyp
       ('i checked the log it finished successfully can you open the report','I checked the log. It finished successfully. Can you open the report?'),
       ('the measurement is 3.14 on channel A1','The measurement is 3.14 on channel A1.'),
       ('Can you open the report?','Can you open the report?'),
+      ('Can you open the report.','Can you open the report?'),
+      ('What is important is safety.','What is important is safety.'),
       ('i do not want my words rewritten i want periods and question marks do you understand','I do not want my words rewritten. I want periods and question marks. Do you understand?'),
     ]
     for raw,expected in corpus:

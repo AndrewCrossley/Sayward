@@ -239,6 +239,14 @@ class Punctuator:
             existing = token.rstrip(CLOSERS)
             has_mark = bool(existing) and existing[-1] in '.,;:!?…'
             mark = marks.get(end, '0')
+            period_position = start+len(existing)-1
+            if existing.endswith('.') and not existing.endswith('..') and mark == '?' and not any(a <= period_position < b for a, b in protected):
+                # Recognizers frequently finish questions with a default period.
+                # Use an actual model question prediction, never the fallback,
+                # while leaving abbreviation/path/code-internal periods intact.
+                at = len(existing)-1
+                token = token[:at]+'?'+token[at+1:]
+                existing = existing[:-1]+'?'
             inside_protected = any(a < end < b for a, b in protected)
             if inside_protected or LINK.search(token) or has_mark or mark not in ('.', ',', '?', ':', '-'):
                 mark = ''
