@@ -103,8 +103,14 @@ def is_literal(text):
     text = text.strip()
     if not text:
         return False
-    if text.startswith(('{', '[')) or '\n' in text or '\r' in text or re.fullmatch(r'`[^`]*`', text) or (text.startswith('```') and text.endswith('```')):
+    if text.startswith(('{', '[')) or re.fullmatch(r'`[^`]*`', text) or (text.startswith('```') and text.endswith('```')):
         return True
+    if '\n' in text or '\r' in text:
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if all(is_literal(line) for line in lines):
+            return True
+        if re.search(r'(?m)^\s*(?:def|class|for|while|if|with|try)\b[^\n]*:\s*$', text) and re.search(r'(?m)^(?:\t| {4})\S', text):
+            return True
     # Recognizable code/call expressions and commands are literal, not prose.
     if re.fullmatch(r'[\w.$:]+\([^\n]*\)\s*;?', text) or re.fullmatch(r'[A-Za-z]\w*(?:\+\+|#)', text):
         return True

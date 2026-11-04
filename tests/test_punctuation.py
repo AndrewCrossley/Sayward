@@ -34,6 +34,7 @@ def test_required_final_marks_and_question_fallback():
     assert model.restore('été arrived')=='été arrived.'
     assert model.restore('please use `foo` tomorrow')=='Please use `foo` tomorrow.'
     assert model.restore('Can you open "https://example.test/report"')=='Can you open "https://example.test/report"?'
+    assert model.restore('hello\nworld')=='Hello\nworld.'
 
 
 def test_sentence_marks_and_casing_preserve_original_words():
@@ -61,6 +62,7 @@ def test_validation_rejects_joined_words_changed_numbers_and_damaged_literals(ra
  '/home/andrew/config.json','config.json','example_value','fooBar','A1','3.14',
  '{"sensor":"A1","value":3.14}','[1,2,3]','value = 3.14','`getValue(A1)`',
  'foo()','getValue(A1)','C++','C#','python -m pytest tests','git --version','a + b',
+ 'foo()\nbar()','def foo():\n    return 3.14',
 ])
 def test_literals_are_unchanged_without_loading_a_model(raw):
     model=p.Punctuator('/missing')
