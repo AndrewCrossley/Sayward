@@ -1,6 +1,6 @@
 # Sayward — required punctuation
 
-Status: implementation and qualification complete, 2026-11-04; publication pending. Andrew approved the fully local punctuation-only pass and narrow separator rule, with wording preserved on Windows and Linux. Design: PUNCTUATION-PLAN.md.
+Status: complete / frozen, 2026-11-04. Release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0. Andrew approved the fully local punctuation-only pass and narrow separator rule, with wording preserved on Windows and Linux. Design: PUNCTUATION-PLAN.md.
 
 Goal: Andrew can dictate ordinary English prose and receive consistently punctuated text, including sentence boundaries and question marks, while speech and text processing remain local.
 
@@ -13,7 +13,7 @@ Done when:
 
 Excluded: cloud processing, assistant/tool integration, general rewriting or spelling correction, arbitrary reading of surrounding editor contents, multilingual punctuation expansion and repository visibility changes. A standalone additional punctuation model must be disclosed during setup; no automatic upload of speech or text.
 
-Proof: a before/after text corpus plus the existing generated-speech/virtual-microphone workflow, through native/browser text fields and Forward/history recovery. All five acceptance conditions are demonstrated on Windows 10 and Mint; the final runtime passed 83 tests with 11 Windows-only skips, real offline model corpus, independent source review and native installer/dictation/recovery/lifecycle checks. VERIFICATION.md records exact evidence and the nonblocking Windows 11 audio-qualification gap. Completion awaits publication of the verified assets.
+Proof: a before/after text corpus plus the existing generated-speech/virtual-microphone workflow, through native/browser text fields and Forward/history recovery. All five acceptance conditions are demonstrated on Windows 10 and Mint; the final runtime passed 83 tests with 11 Windows-only skips, real offline model corpus, independent source review and native installer/dictation/recovery/lifecycle checks. VERIFICATION.md records exact evidence and the nonblocking Windows 11 audio-qualification gap. Verified installer, checksums and qualification evidence are delivered in the 0.3.0 release. Host activation remains user-controlled.
 
 Punctuation-free normal prose is a defect, not an accepted preference. Earlier punctuation deferrals apply only to the historical release below and do not override this requirement.
 
