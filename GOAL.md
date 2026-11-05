@@ -1,6 +1,6 @@
 # Sayward — optional mouse submission
 
-Status: qualified / final delivery pending, 2026-11-05. Public visibility and Windows 10/Mint native gesture, recovery and lifecycle workflows are verified; publish the exact tested 0.3.1 installer/evidence after owned-guest cleanup, then freeze this milestone. Windows 11 remains an explicit coverage gap. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
+Status: complete / frozen, 2026-11-05. Public visibility and Windows 10/Mint native gesture, recovery and lifecycle workflows are verified. Release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1. The exact tested installer, checksums and qualification evidence are published and anonymously accessible; all owned test guests are retired. Windows 11 remains an explicit coverage gap. Andrew authorized public visibility and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter on Windows and Linux.
 
 Goal: Andrew can publish/use Sayward independently and deliberately submit a dictation from the mouse, without changing ordinary paste/recovery behavior.
 

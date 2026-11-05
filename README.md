@@ -6,7 +6,7 @@ Punctuation is required for ordinary prose. Fully local punctuation restoration 
 
 ## Windows installer
 
-Download [Sayward 0.3.1 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1) from the Releases page once published. Quit the previous tray listener, then run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
+Download [Sayward 0.3.1 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1) from the Releases page. Quit the previous tray listener, then run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
 
 First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. Punctuation setup then downloads its separate local model (~300 MB). Both setup dialogs can be reopened from the tray. Once installed, recognition and punctuation need no internet; audio/text are never sent to a service.
 
