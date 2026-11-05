@@ -67,3 +67,17 @@ class Desktop:
             self.root.ungrab_button(button, X.AnyModifier)
         self.display.sync()
         self.display.close()
+
+    def enter(self, target):
+        if not target or target in (X.NONE, X.PointerRoot) or self.focus() != target:
+            raise RuntimeError('Focus changed; Enter cancelled.')
+        if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask):
+            raise RuntimeError('Keyboard modifiers are held; Enter cancelled.')
+        key = self.display.keysym_to_keycode(XK.string_to_keysym('Return'))
+        if not key:
+            raise RuntimeError('The keyboard has no Return mapping.')
+        if self.focus() != target:
+            raise RuntimeError('Focus changed; Enter cancelled.')
+        xtest.fake_input(self.display, X.KeyPress, key)
+        xtest.fake_input(self.display, X.KeyRelease, key)
+        self.display.sync()

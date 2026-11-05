@@ -1,12 +1,12 @@
 # Sayward
 
-Private mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
+Local mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
 Punctuation is required for ordinary prose. Release 0.3.0 adds fully local punctuation restoration before history or insertion, with word-preservation validation and one trailing separating space for prose. Windows 10 and Mint workflows passed native qualification; Windows 11 model setup passed, with full 0.3.0 audio qualification still incomplete. See `GOAL.md` for current status.
 
 ## Windows installer
 
-Download [Sayward 0.3.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0) from this private repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
+Download [Sayward 0.3.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0) from the Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
 
 First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. Punctuation setup then downloads its separate local model (~300 MB). Both setup dialogs can be reopened from the tray. Once installed, recognition and punctuation need no internet; audio/text are never sent to a service.
 
@@ -33,7 +33,7 @@ On an NVIDIA system the Linux installer adds private CUDA/cuDNN Python packages;
 
 1. Focus an ordinary text field. Click rear thumb / Back (logical button 8), then speak. Capture starts immediately while the model loads in parallel.
 2. The red mic glows with incoming audio intensity. Sustained silence shows **No mic input; check mute**. This measures audio, not the physical mute switch or intelligible speech.
-3. Click Back again. Amber means transcribing; keep the target focused until insertion completes. Extra presses while working are ignored.
+3. Click Back again. Amber means transcribing; keep the target focused until insertion completes. To paste and press Enter, double-click Back when stopping: the second click must arrive within 0.75 seconds. This requests one Enter for that recording; it does not start recording again. Other presses while working are ignored.
 4. Front thumb / Forward (button 9) pastes the selected completed transcript again. Both buttons are consumed while Sayward runs; Quit restores browser navigation.
 5. Tray → **Recent transcripts (last 5)** shows newest-first history and a full preview. Select an older item, close history, focus a destination and press Forward. Selection alone never pastes. New results select the newest item. Failed automatic insertion still retains its result; empty/error recordings leave prior history intact.
 
@@ -43,7 +43,7 @@ If punctuation fails, unprocessed dictation stays in memory and is not automatic
 
 Tray → **How to use / Practice** offers a highlighted Start/Stop button and a real practice field. Close and revisit it at any time. On Windows, Alt+R in the practice guide also toggles capture. Windows additionally offers **Model setup** for revisiting downloads or choosing a model folder. Cancel, Copy, Unload model and Quit are available through the tray.
 
-History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). Insertion does not send Enter. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
+History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). One stop click and Forward do not send Enter. Only the deliberate double-stop gesture requests Enter after paste; keep the same destination focused through completion. Enter may submit a message or execute a terminal command. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
 
 On Windows, focus the destination and press Forward for recovery; the tray offers a shortcut hint and Copy selected transcript. Windows tray menus take focus, so they do not offer a separate Paste action. Linux retains its delayed tray Paste action.
 

@@ -1,4 +1,4 @@
-"""Win32 desktop boundary. No shell automation and no Enter key injection."""
+"""Win32 desktop boundary with guarded paste and explicit opt-in Enter."""
 import ctypes as C
 from ctypes import wintypes as W
 import queue
@@ -233,3 +233,17 @@ class Desktop:
         if getattr(self,'clipboard_window',None):
             U.DestroyWindow(self.clipboard_window)
             self.clipboard_window = None
+
+    def enter(self, target):
+        if not target or self.focus() != target:
+            raise RuntimeError('Focus changed; Enter cancelled.')
+        if any(U.GetAsyncKeyState(key) & 0x8000 for key in (0x10,0x11,0x12,0x5B,0x5C)):
+            raise RuntimeError('Keyboard modifiers are held; Enter cancelled.')
+        events=(Input*2)(Input(type=1,value=InputUnion(ki=KeyboardInput(vk=0x0D))),
+                         Input(type=1,value=InputUnion(ki=KeyboardInput(vk=0x0D,flags=2))))
+        if self.focus() != target:
+            raise RuntimeError('Focus changed; Enter cancelled.')
+        if U.SendInput(2,events,C.sizeof(Input)) != 2:
+            release=(Input*1)(events[1])
+            U.SendInput(1,release,C.sizeof(Input))
+            raise RuntimeError('Windows blocked Enter; submit manually.')

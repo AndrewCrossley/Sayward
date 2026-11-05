@@ -212,5 +212,22 @@
       "Try a simultaneous second setup"
     ],
     "expected": "OS lock protects an active downloader; after interruption the next lock owner removes its stale partial file, and only hash-verified complete files become usable."
+  },
+  {
+    "id": "DICTATION-DOUBLE-STOP-SUBMIT",
+    "title": "Double stop requests one guarded Enter without a second recording",
+    "automated": "tests/test_submission.py; tests/test_desktop.py; tests/test_windows_input.py",
+    "surfaces": [
+      "Windows x64",
+      "Linux Mint Cinnamon X11"
+    ],
+    "steps": [
+      "Use qa/submission.html with public synthetic speech through a disposable virtual microphone",
+      "Stop once: wait for punctuated text and Enter count 0; Forward recovery also leaves count unchanged",
+      "Record again, click Stop twice within 0.75 seconds including a fast <0.3-second double-click",
+      "Verify one submitted completed transcript and no second recording",
+      "Repeat late second click, silence, changed focus, held modifier, punctuation failure/retry and Quit before completion"
+    ],
+    "expected": "Only an explicit in-window double-stop sends one Enter after validated paste. Silence/errors/auto-stop/retry/Quit cannot carry submission into later output; history/Forward retain completed text."
   }
 ]

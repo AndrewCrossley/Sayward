@@ -40,3 +40,21 @@ def test_both_thumb_buttons_are_consumed_and_unbound_on_close():
     assert desktop.events() == [8, 9]
     desktop.close()
     assert removed == [8, 9]
+
+
+@pytest.mark.parametrize('focus,mask',[(None,0),(11,0),(10,X.ControlMask),(10,X.ShiftMask),(10,X.Mod4Mask)])
+def test_enter_never_injects_into_changed_focus_or_with_modifiers(monkeypatch,focus,mask):
+    desktop=Desktop.__new__(Desktop);desktop.focus=lambda:focus
+    desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=mask))
+    calls=[];monkeypatch.setattr(xtest,'fake_input',lambda *args:calls.append(args))
+    with pytest.raises(RuntimeError):desktop.enter(10)
+    assert calls==[]
+
+
+def test_enter_is_one_return_pair_without_clipboard_or_paste_modifiers(monkeypatch):
+    desktop=Desktop.__new__(Desktop);desktop.focus=lambda:10
+    desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=0))
+    desktop.display=types.SimpleNamespace(keysym_to_keycode=lambda _:36,sync=lambda:None)
+    calls=[];monkeypatch.setattr(xtest,'fake_input',lambda _,event,key:calls.append((event,key)))
+    desktop.enter(10)
+    assert calls==[(X.KeyPress,36),(X.KeyRelease,36)]
