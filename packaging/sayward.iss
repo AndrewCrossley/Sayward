@@ -1,4 +1,4 @@
-#define AppVersion "0.3.0"
+#define AppVersion "0.3.1"
 [Setup]
 AppId={{07DE0649-760D-42E8-AEBF-302903F52472}
 AppName=Sayward

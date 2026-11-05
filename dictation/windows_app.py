@@ -148,14 +148,14 @@ class WindowsApp(Session):
         self.punctuation_changed()
         return False
 
-    def toggle(self):
+    def toggle(self, allow_submit=False, pressed_at=None):
         if self.downloading:
             self.set_state('idle','Model download in progress — open Model setup')
             return
         if not self.ready_model:
             self.setup()
             return
-        super().toggle()
+        super().toggle(allow_submit=allow_submit, pressed_at=pressed_at)
 
     def cue(self,event):
         if self.config.sound:
@@ -213,8 +213,9 @@ class WindowsApp(Session):
             '2. The red microphone glows with input; dim + check mute means little/no audio.\n'
             '3. Amber means transcribing. Keep the destination focused until text arrives.\n'
             '4. Forward thumb pastes the selected result again. It never presses Enter.\n'
+            'Double-click Back thumb when stopping (within 0.75s) for paste + Enter.\n'
             '5. Tray → Recent transcripts keeps your last five results for this session.\n\n'
-            'Practice below. The green Start/Stop button does the same job as Back.\n'
+            'Practice below. Start/Stop records and pastes only; use Back thumb for paste + Enter.\n'
             'Close this guide any time; reopen it through the tray. Dictation replaces the clipboard.\n'
             'Speech and punctuation stay local. Prose pastes include a separating space.\n'
             'Use Punctuation setup for its one-time download. Failed dictation stays in memory.\n'

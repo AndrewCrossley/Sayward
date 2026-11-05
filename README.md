@@ -1,12 +1,12 @@
 # Sayward
 
-Private mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
+Local mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
-Punctuation is required for ordinary prose. Release 0.3.0 adds fully local punctuation restoration before history or insertion, with word-preservation validation and one trailing separating space for prose. Windows 10 and Mint workflows passed native qualification; Windows 11 model setup passed, with full 0.3.0 audio qualification still incomplete. See `GOAL.md` for current status.
+Punctuation is required for ordinary prose. Fully local punctuation restoration runs before history or insertion, with word-preservation validation and one trailing separating space for prose. Version 0.3.1 adds optional Back-thumb double-stop submission. Windows 10 and Mint gesture/recovery/lifecycle workflows passed native qualification; Windows 11 remains unqualified for this update. See `GOAL.md` for current delivery status.
 
 ## Windows installer
 
-Download [Sayward 0.3.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0) from this private repository's Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
+Download [Sayward 0.3.1 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1) from the Releases page once published. Quit the previous tray listener, then run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
 
 First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. Punctuation setup then downloads its separate local model (~300 MB). Both setup dialogs can be reopened from the tray. Once installed, recognition and punctuation need no internet; audio/text are never sent to a service.
 
@@ -14,7 +14,7 @@ The installer is unsigned, so Windows may show an unknown-publisher/SmartScreen 
 
 Configuration and downloaded models live in `%LOCALAPPDATA%\Sayward`. Uninstall through Windows Settings or the Start-menu uninstall entry; login startup and installed program files are removed, while configuration/model downloads are retained.
 
-Release 0.3.0 ordinary-user dictation, punctuation, Copy/Forward recovery and Quit/relaunch passed on Windows 10 x64 in an admin-verified VM. Windows 11 final model download/setup passed, but its new audio workflow remains unqualified; see VERIFICATION.md. Historical 0.2.0 lifecycle evidence is retained separately. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
+Version 0.3.1 ordinary-user dictation, guarded double-stop submission, Forward recovery and Quit/relaunch passed on Windows 10 x64 in admin-verified VMs. Windows 11's lab attempt was unusable before product testing; its 0.3.1 audio/gesture workflow remains unqualified. See VERIFICATION.md for exact coverage and retained historical results. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
 
 ## Linux
 
@@ -33,9 +33,11 @@ On an NVIDIA system the Linux installer adds private CUDA/cuDNN Python packages;
 
 1. Focus an ordinary text field. Click rear thumb / Back (logical button 8), then speak. Capture starts immediately while the model loads in parallel.
 2. The red mic glows with incoming audio intensity. Sustained silence shows **No mic input; check mute**. This measures audio, not the physical mute switch or intelligible speech.
-3. Click Back again. Amber means transcribing; keep the target focused until insertion completes. Extra presses while working are ignored.
+3. Click Back again. Amber means transcribing; keep the target focused until insertion completes. To paste and press Enter, double-click Back when stopping: the second click must arrive within 0.75 seconds. This requests one Enter for that recording; it does not start recording again. Other presses while working are ignored.
 4. Front thumb / Forward (button 9) pastes the selected completed transcript again. Both buttons are consumed while Sayward runs; Quit restores browser navigation.
 5. Tray → **Recent transcripts (last 5)** shows newest-first history and a full preview. Select an older item, close history, focus a destination and press Forward. Selection alone never pastes. New results select the newest item. Failed automatic insertion still retains its result; empty/error recordings leave prior history intact.
+
+For paste + Enter, focus the destination before recording and keep the same native window/control through completion. If the destination differs, Sayward saves the completed result without pasting or submitting; focus your field and press Forward to recover it. GUI/tray Start/Stop remains paste-only.
 
 Completed prose gets punctuation and conservative sentence casing while its words, numbers and identifiers are preserved. History shows clean text; automatic insertion, Copy and Forward add one trailing ASCII space so two new dictations do not join together. Recognizable literal JSON, code/calls, commands with flags, paths and bare links remain as recognized without an extra separator. Inline code stays intact; a final bare link in prose may be quoted to keep the sentence mark outside its address. This does not inspect text around your cursor or repair old text already in the field.
 
@@ -43,7 +45,7 @@ If punctuation fails, unprocessed dictation stays in memory and is not automatic
 
 Tray → **How to use / Practice** offers a highlighted Start/Stop button and a real practice field. Close and revisit it at any time. On Windows, Alt+R in the practice guide also toggles capture. Windows additionally offers **Model setup** for revisiting downloads or choosing a model folder. Cancel, Copy, Unload model and Quit are available through the tray.
 
-History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). Insertion does not send Enter. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
+History lives only in memory and clears on Quit/restart. Audio is a temporary recording deleted after processing. No transcript is logged. Dictation replaces the clipboard (and Linux primary selection). One stop click and Forward do not send Enter. Only the deliberate double-stop gesture requests Enter after paste; keep the same destination focused through completion. Enter may submit a message or execute a terminal command. Avoid multi-line commands in terminals: terminals may interpret pasted newlines. Windows uses Ctrl+V; Linux uses Shift+Insert.
 
 On Windows, focus the destination and press Forward for recovery; the tray offers a shortcut hint and Copy selected transcript. Windows tray menus take focus, so they do not offer a separate Paste action. Linux retains its delayed tray Paste action.
 
@@ -53,7 +55,7 @@ A changed native window/control focus prevents automatic insertion; recover with
 
 Linux: `uv sync` (add `--extra gpu` for private NVIDIA libraries), then `uv run --no-sync python -m pytest tests -q`. GUI/OS qualification uses isolated VMs.
 
-Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.3.0-x64.exe`. The frozen package bundles its MSVC runtime DLLs; a source-only Python environment needs the corresponding runtime dependencies in its DLL search path. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
+Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.3.1-x64.exe`. The frozen package bundles its MSVC runtime DLLs; a source-only Python environment needs the corresponding runtime dependencies in its DLL search path. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
 
 CI builds installer candidates as draft Releases; qualification is required before publishing a release. See `GOAL.md`, `MIGRATION.md`, `NAME-CHECK.md`, `VERIFICATION.md` and `qa/regressions.json`. Original standalone Git history is retained; the old Tessera preservation checkpoint remains separate. AI-assistant/cloud integration remains outside scope. Release 0.2.0 predates the current required-punctuation milestone.
 

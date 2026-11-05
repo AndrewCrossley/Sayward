@@ -18,7 +18,10 @@ class Session:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.state, self.started = 'idle', 0
         self.history, self.target = TranscriptHistory(), None
+        self.recording_target = None
         self.closed = False
+        self.stop_guard_at = None
+        self.clear_submission()
         self.idle_deadline = 0
         self.last_press = {}
         self.meter_level, self.meter_frame = 0.0, None
@@ -28,34 +31,73 @@ class Session:
     def poll(self):
         if self.closed:
             return False
-        for button in self.desktop.events():
-            now = time.monotonic()
-            if now - self.last_press.get(button, 0) >= 0.3:
-                self.last_press[button] = now
-                if button == self.config.button:
-                    self.toggle()
-                elif button == self.config.paste_button:
-                    self.paste_last()
+        # stop() can block briefly. Drain again before delivery so clicks that
+        # arrived during that call retain their original intent and timestamps.
+        while events := self.desktop.events():
+            for button, pressed_at in events:
+                if button == self.config.button and self.stop_guard_at is not None and 0 <= pressed_at - self.stop_guard_at <= 0.75:
+                    if self.can_request_enter(pressed_at):
+                        self.toggle(allow_submit=True, pressed_at=pressed_at)
+                    # Even a fast failure/silent result must consume the second
+                    # stop click, rather than accidentally starting a capture.
+                    continue
+                if pressed_at - self.last_press.get(button, 0) >= 0.3:
+                    self.last_press[button] = pressed_at
+                    if button == self.config.button:
+                        self.toggle(allow_submit=True, pressed_at=pressed_at)
+                    elif button == self.config.paste_button:
+                        self.paste_last()
+        self.advance_delivery()
         return True
 
-    def toggle(self):
+    def clear_submission(self):
+        self.stop_click_at = None
+        self.submit_requested = False
+        self.delivery = None
+        self.enter_due = None
+        self.enter_target = None
+
+    def can_request_enter(self, pressed_at=None):
+        at = time.monotonic() if pressed_at is None else pressed_at
+        return self.stop_click_at is not None and 0 <= at - self.stop_click_at <= 0.75
+
+    def toggle(self, allow_submit=False, pressed_at=None):
+        if self.closed:
+            return
+        if allow_submit and self.state == 'working' and self.can_request_enter(pressed_at):
+            self.submit_requested = True
+            self.stop_click_at = None
+            self.set_state('working', 'Paste + Enter requested — keep this text field focused')
+            return
         if self.state == "working":
             return
         if self.pending and self.state != 'recording':
             return self.retry_punctuation(paste=True)
         if self.state == "recording":
+            self.clear_submission()
+            stopped_at = time.monotonic() if pressed_at is None else pressed_at
+            self.stop_guard_at = stopped_at if allow_submit else None
             try:
+                self.target = self.desktop.focus()
                 audio = self.recorder.stop()
             except Exception as exc:
+                try:
+                    self.recorder.cancel()
+                except Exception:
+                    pass  # Still report the original stop/focus error.
                 self.idle_deadline = time.monotonic() + self.config.idle_seconds
                 self.set_state("error", str(exc))
                 return
-            self.target = self.desktop.focus()
-            self.set_state("working", "Transcribing — please keep this text field focused")
+            if allow_submit:
+                self.stop_click_at = stopped_at
+            self.set_state("working", "Transcribing — click Back again within 0.75s for paste + Enter" if allow_submit else "Transcribing — keep this text field focused")
             self.cue("stop")
             self.submit(lambda: self.engine.transcribe(audio), self.finished, audio)
             return
+        self.clear_submission()
+        self.stop_guard_at = None
         try:
+            self.recording_target = self.desktop.focus()
             self.recorder.start()
         except Exception:
             self.set_state("error", "Microphone unavailable — check desktop sound input and try again")
@@ -89,15 +131,18 @@ class Session:
     def finished(self, result, error):
         self.idle_deadline = time.monotonic() + self.config.idle_seconds
         if error:
+            self.clear_submission()
             self.set_state("error", "Transcription failed — " + error)
             self.cue("error")
             return False
         text, device = result
         if not text:
+            self.clear_submission()
             self.set_state("idle", f"No speech detected ({device.upper()}) — ready")
             return False
         self.pending = (text, device)
         if self.punctuation_downloading:
+            self.clear_submission()
             self.set_state('error', 'Dictation saved while punctuation downloads — use Retry punctuation when ready')
         else:
             self._punctuate(paste=True, target=self.target)
@@ -108,13 +153,14 @@ class Session:
             return False
         if paste and target is None:
             target = self.desktop.focus()
+        self.clear_submission()
         return self._punctuate(paste, target)
 
     def _punctuate(self, paste, target):
         self.target = target
         self.punctuation_auto_paste = paste
         self.idle_deadline = 0
-        self.set_state('working', 'Adding punctuation locally — keep this text field focused')
+        self.set_state('working', 'Adding punctuation locally — '+('paste + Enter requested; ' if self.submit_requested else '')+'keep this text field focused')
         raw, _ = self.pending
         self.submit(lambda: self.punctuator.restore(raw), self.punctuated)
         return False
@@ -124,6 +170,7 @@ class Session:
         if not self.pending:
             return False
         if error:
+            self.clear_submission()
             self.set_state('error', 'Dictation saved — use Punctuation setup, then Retry punctuation (Back)')
             self.punctuation_setup_message = 'Punctuation failed: '+error
             self.punctuation_changed()
@@ -138,20 +185,61 @@ class Session:
         self.history.add(text)
         self.refresh_history()
         if not self.punctuation_auto_paste:
+            self.clear_submission()
             self.set_state('idle', 'Punctuation ready — focus your text field and press Forward')
             return False
-        try:
-            self.desktop.paste(insertion_text(text), self.target)
-        except Exception as exc:
-            self.set_state("error", str(exc))
-            self.cue("error")
-            return False
-        self.set_state("idle", f"Text pasted ({device.upper()}) — ready")
-        self.cue("done")
+        self.delivery = (text, device, self.target)
+        # Drain OS click timestamps in poll before delivery: a queued second
+        # click can precede this completion even when the UI processed it later.
+        if self.stop_click_at is None and not self.submit_requested:
+            self.advance_delivery()
         return False
+
+    def advance_delivery(self):
+        if self.closed:
+            return
+        now = time.monotonic()
+        if self.delivery and (self.stop_click_at is None or now - self.stop_click_at > 0.75):
+            text, device, target = self.delivery
+            self.delivery = None
+            # A stalled UI cannot reconstruct the focus at an earlier mouse
+            # event. Automatic submission therefore also requires its origin.
+            if self.submit_requested and (not self.recording_target or self.recording_target != target):
+                self.clear_submission()
+                self.set_state('error', 'Destination changed while recording — result saved; focus your field and press Forward')
+                self.cue('error')
+                return
+            try:
+                self.desktop.paste(insertion_text(text), target)
+            except Exception as exc:
+                self.clear_submission()
+                self.set_state('error', str(exc))
+                self.cue('error')
+                return
+            if self.submit_requested:
+                # Let the destination consume its clipboard paste on the next
+                # UI turns, then recheck focus/modifiers before a separate Enter.
+                self.enter_target, self.enter_due = target, time.monotonic() + 0.15
+                self.set_state('working', 'Text pasted — sending Enter')
+            else:
+                self.clear_submission()
+                self.set_state('idle', f'Text pasted ({device.upper()}) — ready')
+                self.cue('done')
+        if self.enter_due is not None and now >= self.enter_due:
+            target = self.enter_target
+            self.clear_submission()
+            try:
+                self.desktop.enter(target)
+            except Exception as exc:
+                self.set_state('error', 'Text pasted; Enter not sent — '+str(exc))
+                self.cue('error')
+                return
+            self.set_state('idle', 'Text pasted and Enter sent — ready')
+            self.cue('done')
 
     def discard_pending(self):
         if self.state not in ('recording', 'working'):
+            self.clear_submission()
             self.pending = None
             self.set_state('idle', 'Saved unprocessed dictation discarded — ready')
 
@@ -183,6 +271,7 @@ class Session:
 
     def cancel(self):
         if self.state == "recording":
+            self.clear_submission()
             self.idle_deadline = time.monotonic() + self.config.idle_seconds
             try:
                 self.recorder.cancel()
@@ -222,7 +311,7 @@ class Session:
             return False
         now = time.monotonic()
         if self.state == "recording" and now - self.started >= self.config.max_record_seconds:
-            self.toggle()
+            self.toggle(allow_submit=False)
         elif self.state not in ("recording", "working") and self.idle_deadline and now >= self.idle_deadline:
             self.unload()
         return True
@@ -232,6 +321,7 @@ class Session:
         if self.closed:
             return
         self.closed = True
+        self.clear_submission()
         self.pending = None
         self.engine.stopping = True
         try:self.recorder.cancel()

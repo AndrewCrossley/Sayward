@@ -24,7 +24,9 @@ def test_native_clipboard_preserves_unicode_and_both_mouse_buttons_are_consumed(
             events=(Input*2)(Input(type=0,value=InputUnion(mi=MouseInput(data=button,flags=0x80))),Input(type=0,value=InputUnion(mi=MouseInput(data=button,flags=0x100))))
             assert U.SendInput(2,events,C.sizeof(Input))==2
         time.sleep(0.15)
-        assert desktop.events()==[8,9]
+        events=desktop.events()
+        assert [button for button,_ in events]==[8,9]
+        assert all(0 <= time.monotonic()-at < 2 for _,at in events)
     finally:desktop.close()
 
 

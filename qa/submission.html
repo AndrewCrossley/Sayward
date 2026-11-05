@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sayward local submission fixture</title>
+<h1>Local dictation submission test</h1>
+<p>No network or real message is sent. Enter records the current field below.</p>
+<label for="words">Dictation field</label><br>
+<textarea id="words" autofocus rows="6" cols="80"></textarea>
+<p>Enter count: <strong id="count">0</strong></p>
+<pre id="submitted"></pre>
+<label for="other">Other field for focus checks</label><br>
+<textarea id="other" rows="3" cols="80"></textarea>
+<script>
+let count=0;
+for (const field of document.querySelectorAll('textarea')) {
+  field.addEventListener('keydown', event => {
+    if (event.key==='Enter' && !event.shiftKey) {
+      event.preventDefault();
+      document.querySelector('#count').textContent=String(++count);
+      document.querySelector('#submitted').textContent+=JSON.stringify({field:field.id,text:field.value})+'\n';
+      field.value='';
+    }
+  });
+}
+</script>

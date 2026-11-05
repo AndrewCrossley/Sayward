@@ -1,6 +1,6 @@
 # Punctuation correction proposal — 2026-11-03
 
-Andrew approved this approach on 2026-11-03. Implementation and qualification are in progress; no completed fix is claimed yet. GOAL.md is the authoritative acceptance record. Andrew requires punctuation in ordinary prose and previously requested agreement on the approach before implementation.
+Andrew approved this approach on 2026-11-03. This historical design was implemented and released in 0.3.0; see VERIFICATION.md. The later 0.3.1 Back-thumb submission gesture supersedes blanket no-Enter behavior only for deliberate double-stop; punctuation/separator processing itself never injects Enter. GOAL.md is the authoritative acceptance record. Andrew requires punctuation in ordinary prose and previously requested agreement on the approach before implementation.
 
 ## What the current code does
 

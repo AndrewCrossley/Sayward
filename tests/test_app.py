@@ -32,6 +32,8 @@ def test_failed_auto_paste_still_keeps_new_result_and_forward_uses_selected_text
     app.desktop = SimpleNamespace(paste=reject)
     app.pending = ('Latest words', 'cpu')
     app.punctuation_auto_paste = True
+    app.closed = False
+    app.clear_submission()
     app.punctuated('Latest words.', None)
     assert app.history.items == ['Latest words.', 'Older words']
     app.history.select(1)
@@ -58,9 +60,12 @@ def test_button_events_dispatch_separately_without_starting_recording_on_forward
     app.closed = False
     app.config = Config()
     app.last_press = {}
-    app.desktop = SimpleNamespace(events=lambda: [8, 9, 9])
+    app.stop_guard_at = None
+    app.clear_submission()
+    events=[[(8,100), (9,100), (9,100.1)],[]]
+    app.desktop = SimpleNamespace(events=lambda: events.pop(0))
     calls = []
-    app.toggle = lambda: calls.append('record')
+    app.toggle = lambda **_: calls.append('record')
     app.paste_last = lambda: calls.append('paste')
     assert app.poll()
     assert calls == ['record', 'paste']

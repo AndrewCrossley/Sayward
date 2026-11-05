@@ -1,4 +1,24 @@
-# Sayward — required punctuation
+# Sayward — optional mouse submission
+
+Status: qualified / final delivery pending, 2026-11-05. Public visibility and Windows 10/Mint native gesture, recovery and lifecycle workflows are verified; publish the exact tested 0.3.1 installer/evidence after owned-guest cleanup, then freeze this milestone. Windows 11 remains an explicit coverage gap. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
+
+Goal: Andrew can publish/use Sayward independently and deliberately submit a dictation from the mouse, without changing ordinary paste/recovery behavior.
+
+Done when:
+1. Public repository retains existing Git history and releases after checking tracked history/release evidence for private data and credentials.
+2. One stop click still pastes without Enter. A second Back thumb stop click within 0.75 seconds requests exactly one Enter for that recording; it never starts another capture. Recognition/punctuation continue immediately; exceptionally fast results wait only for the gesture window.
+3. Enter follows validated punctuation and paste, with target/modifier checks repeated after clipboard delivery. Silence, failed processing/paste, changed focus, auto-stop, retries and Quit cannot leak an Enter request into another result. Forward stays paste-only.
+4. Deterministic timing/error regressions and native Windows/Linux mouse/form workflows prove the behavior and visible feedback. Updated guide and installer explain the gesture; GUI/tray Start/Stop stays paste-only.
+
+Excluded: cloud assistant, new mouse bindings, general rewriting, arbitrary editor-context capture and a configurable gesture system. No host installed app/service changes.
+
+Proof: public GitHub metadata and local credential-signature/entropy scan; shared-session timing/failure tests; OS-boundary guards; disposable native form records text and Enter counts through real thumb events, plus recovery/Quit checks. Runtime-visible behavior needs isolated OS guests; ordinary source tests do not need to launch the app.
+
+Qualification proof: real-model host and Mint suites: 130 passed / 15 Windows-only skipped; final CI Windows: 126 passed / 6 skipped; Linux: 114 passed / 18 skipped; independent source review clean. Native Mint and Windows 10 cases cover single/double/near/late stop, Forward, silence and changed native destination. A separate same-installer Windows 10 delta closes the original post-relaunch gap with real populated history, normal Quit, one relaunch to Ready/empty history, no stale Forward and final process count 0. Combined verdict PASS WITH ISSUES for documented Windows 11, browser/hardware/display/latency limits. VERIFICATION.md preserves exact source/artifact hashes and all sealed reports.
+
+---
+
+# Completed milestone — required punctuation
 
 Status: complete / frozen, 2026-11-04. Release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0. Andrew approved the fully local punctuation-only pass and narrow separator rule, with wording preserved on Windows and Linux. Design: PUNCTUATION-PLAN.md.
 

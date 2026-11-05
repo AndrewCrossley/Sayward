@@ -278,7 +278,8 @@ class App(Session):
             "2. Click the Back thumb button once, then speak. The red mic glows with your input level.\n"
             "3. Click it again. The amber icon means transcribing; keep the field focused.\n"
             "4. Your words are pasted at the cursor. GPU is preferred; CPU is automatic.\n\n"
-            "Try it in the box below. Start/Stop does the same thing as the mouse button.\n"
+            "Double-click Back thumb when stopping (within 0.75s) for paste + Enter.\n"
+            "Try it below. Start/Stop records and pastes only; use Back thumb for paste + Enter.\n"
             "To paste again, focus the field and press the front thumb / Forward button.\n"
             "Choose older results through Recent transcripts in the tray (last five, this session).\n"
             "A dim icon and No mic input message mean check your microphone or mute switch.\n"
@@ -297,7 +298,7 @@ class App(Session):
         self.practice_toggle = Gtk.Button(label=self.toggle_item.get_label())
         self.practice_toggle.set_can_focus(False)
         self.practice_toggle.get_style_context().add_class("suggested-action")
-        self.practice_toggle.set_tooltip_text("One click starts recording; the next click stops and transcribes.")
+        self.practice_toggle.set_tooltip_text("Start/Stop records and pastes only. Double-click the Back thumb button when stopping for paste + Enter.")
         self.practice_toggle.connect("clicked", lambda _: self.toggle())
         box.pack_start(self.practice_toggle, False, False, 0)
         self.practice_status = Gtk.Label(label=self.status_item.get_label())
