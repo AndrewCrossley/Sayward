@@ -18,6 +18,7 @@ class Session:
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         self.state, self.started = 'idle', 0
         self.history, self.target = TranscriptHistory(), None
+        self.recording_target = None
         self.closed = False
         self.stop_guard_at = None
         self.clear_submission()
@@ -96,6 +97,7 @@ class Session:
         self.clear_submission()
         self.stop_guard_at = None
         try:
+            self.recording_target = self.desktop.focus()
             self.recorder.start()
         except Exception:
             self.set_state("error", "Microphone unavailable — check desktop sound input and try again")
@@ -200,6 +202,13 @@ class Session:
         if self.delivery and (self.stop_click_at is None or now - self.stop_click_at > 0.75):
             text, device, target = self.delivery
             self.delivery = None
+            # A stalled UI cannot reconstruct the focus at an earlier mouse
+            # event. Automatic submission therefore also requires its origin.
+            if self.submit_requested and (not self.recording_target or self.recording_target != target):
+                self.clear_submission()
+                self.set_state('error', 'Destination changed while recording — result saved; focus your field and press Forward')
+                self.cue('error')
+                return
             try:
                 self.desktop.paste(insertion_text(text), target)
             except Exception as exc:

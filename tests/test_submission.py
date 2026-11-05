@@ -15,6 +15,7 @@ def app(monkeypatch):
         paste=lambda text,target:actions.append(('paste',text,target)),
         enter=lambda target:actions.append(('enter',target)),close=lambda:None)
     instance=Session(Config(),desktop,lambda *_:None)
+    instance.recording_target=42
     instance.clock,instance.events,instance.actions,instance.jobs=clock,events,actions,jobs
     instance.cue=lambda _:None;instance.refresh_history=lambda:None
     instance.set_state=lambda value,message:setattr(instance,'state',value)
@@ -222,3 +223,27 @@ def test_focus_query_failure_stops_capture_without_pasting_or_submitting(app):
     app.recorder.cancel=lambda:cancelled.append(True)
     click(app,100);click(app,100.4)
     assert app.state=='error' and cancelled and app.actions==[]
+
+
+def test_queued_stop_cannot_submit_into_a_different_recording_origin(app):
+    focus=[42];app.desktop.focus=lambda:focus[0]
+    click(app,99);assert app.recording_target==42
+    # Physical stop pair happened in42; UI notices it only after focusmoved99.
+    focus[0]=99;app.clock[0]=102
+    app.events[:]=[(8,100),(8,100.2)];app.poll()
+    result(app);app.clock[0]=103;app.poll()
+    assert app.actions==[('record',)] and app.state=='error'
+    assert app.history.text=='Hello world.' and app.enter_due is None
+    app.paste_last();assert app.actions[-1]==('paste','Hello world. ',99)
+
+
+def test_single_stop_can_still_paste_into_a_deliberately_changed_destination(app):
+    click(app,99);app.desktop.focus=lambda:99
+    click(app,100);result(app);app.clock[0]=101;app.poll()
+    assert app.actions==[('record',),('paste','Hello world. ',99)]
+
+
+def test_double_stop_requires_a_known_recording_origin(app):
+    stop(app);app.recording_target=None;click(app,100.2);result(app)
+    app.clock[0]=101;app.poll()
+    assert app.actions==[] and app.state=='error' and app.history.text=='Hello world.'
