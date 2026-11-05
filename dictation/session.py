@@ -77,12 +77,16 @@ class Session:
             stopped_at = time.monotonic() if pressed_at is None else pressed_at
             self.stop_guard_at = stopped_at if allow_submit else None
             try:
+                self.target = self.desktop.focus()
                 audio = self.recorder.stop()
             except Exception as exc:
+                try:
+                    self.recorder.cancel()
+                except Exception:
+                    pass  # Still report the original stop/focus error.
                 self.idle_deadline = time.monotonic() + self.config.idle_seconds
                 self.set_state("error", str(exc))
                 return
-            self.target = self.desktop.focus()
             if allow_submit:
                 self.stop_click_at = stopped_at
             self.set_state("working", "Transcribing — click Back again within 0.75s for paste + Enter" if allow_submit else "Transcribing — keep this text field focused")

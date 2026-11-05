@@ -199,3 +199,26 @@ def test_original_stop_time_remains_eligible_while_inference_is_still_pending(ap
     assert app.submit_requested
     result(app);app.clock[0]=102;app.poll()
     assert app.actions[-1]==('enter',42)
+
+
+def test_focus_is_captured_at_stop_click_before_a_slow_audio_stop(app):
+    focus=[42];app.desktop.focus=lambda:focus[0];app.state='recording'
+    def stop_with_focus_change():
+        focus[0]=99;app.clock[0]=100.3;return 'unused-public-fixture.wav'
+    app.recorder.stop=stop_with_focus_change
+    def guarded_paste(text,target):
+        if target!=focus[0]:raise RuntimeError('Focus changed')
+        app.actions.append(('paste',text,target))
+    app.desktop.paste=guarded_paste
+    click(app,100);click(app,100.4);result(app)
+    app.clock[0]=101;app.poll()
+    assert app.actions==[] and app.state=='error' and app.history.text=='Hello world.'
+    app.paste_last();assert app.actions==[('paste','Hello world. ',99)]
+
+
+def test_focus_query_failure_stops_capture_without_pasting_or_submitting(app):
+    app.state='recording';cancelled=[]
+    app.desktop.focus=lambda:(_ for _ in ()).throw(RuntimeError('Desktop disconnected'))
+    app.recorder.cancel=lambda:cancelled.append(True)
+    click(app,100);click(app,100.4)
+    assert app.state=='error' and cancelled and app.actions==[]
