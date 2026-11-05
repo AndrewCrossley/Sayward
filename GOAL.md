@@ -1,6 +1,6 @@
 # Sayward — optional mouse submission
 
-Status: active, 2026-11-04. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
+Status: active, 2026-11-04. Public visibility and the Linux native workflow are verified; Windows native qualification remains required. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
 
 Goal: Andrew can publish/use Sayward independently and deliberately submit a dictation from the mouse, without changing ordinary paste/recovery behavior.
 

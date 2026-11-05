@@ -1,3 +1,32 @@
+# Optional Back-thumb submission — candidate 0.3.1, 2026-11-04
+
+Status: native qualification in progress; not yet released. Runtime source `352604a6e42283514d83ab20d018084260319dab`. Later changes are documentation only. Reviewed installer:91,814,362 bytes, SHA256 `b8805e73a00d9841de82e81b77b10ddca7f8b428f4d4f8040cd2cd6d373533da`, built by [CI run 41950819847](https://github.com/AndrewCrossley/Sayward/actions/runs/41950819847).
+
+A second Back-thumb stop within 0.75 seconds requests one Enter after completed punctuation and paste. One stop, Forward and GUI/tray Start/Stop remain paste-only. Both adapters preserve original native event times; input queues are drained before delivery and fast failures still consume the second stop. Double-submit requires a known matching native window/control from recording start through delivery; a changed origin retains completed history for deliberate Forward recovery. Enter repeats focus/modifier checks after a 150 ms clipboard-settling interval. That delay is not acknowledgement from every possible recipient app; native destination outcomes must be tested. Existing native-handle alias limits for DOM fields/focus cycles remain documented.
+
+The repository is now public after explicit authorization. Credential-signature and local detect-secrets scans over 190 reachable historical blobs found no findings; anonymous repository access returned HTTP 200. Standalone history and releases are retained.
+
+## Source, CI and installation checks
+
+- Host suite using real pinned offline punctuation weights: **130 passed, 15 Windows-only skipped**. The same suite passed in the fresh Mint guest after standard installation.
+- Final CI Windows: **126 passed, 6 skipped**; Linux: **114 passed, 18 skipped**. Missing optional model/native/GTK surfaces are not inferred as covered.
+- [Independent source review](evidence/submit-independent-review.md) is clean. Its eight reviewed file hashes match committed runtime 352604a; its separate129-pass/16-skip host run did not opt into real weights. Findings repaired before release include queued-click intent, fast-failure accidental recording, native modifier guards and queued/slow-stop focus changes. Graphify inventories and regression tests are retained under ignored evidence paths.
+- Mint source archive was checked against the reviewed Session/Desktop bytes. Normal install.sh completed using declared public cached speech/punctuation models; no host installed app or service was restarted/reconfigured.
+
+## Native environments and current coverage
+
+Windows 11 `lab-windows-11-03`,8192 MiB: administrator capability verified; signed public virtual-audio fixture installed and ordinary disposable sign-in prepared. The [sealed source-blind report](evidence/submit-win11-source-blind/REPORT-352604a-environment-blocked.md) is **FAIL qualification because the OS environment was unusable**, with no product finding. Sound/TaskManager/Scheduler became unresponsive before recording-default/meters, installer readiness or any product gesture test could be established. Playback-default evidence is not microphone/inference evidence. The attempted second normal restart never completed. The controller's120-second graceful stop timed out; a supported forced stop completed late, status confirmed shutoff, and final release removed the owned overlay. Guest-only temporary credentials were disposed with it; no credentials/configuration hives were exported. This report remains unchanged and cannot be converted to PASS by another OS result.
+
+Mint 22.3 Cinnamon X11 `lab-mint-worker-06`,4096 MiB: console and SSH `sudo -n true` verified. Its network/SSH/display-manager services were started normally in the guest; Xorg:0 on vt7, 1280×800. The source-aware installation and 130-test suite passed. A declared public virtual microphone routing preflight measured RMS 0.08614 from 96,000 samples; no personal audio was captured. The independent [narrow native report](evidence/submit-mint-primary/retry/OBSERVATIONS.md) and [adjacent/lifecycle report](evidence/submit-mint-primary/retry/EDGE_CASES.md) are PASS for their declared scopes: single stop Enter0, 200ms and 700ms double stop Enter1 with completed text and trailing space, Forward without another Enter, 950ms no Enter plus normal Cancel, silence without history/capture changes, changed native window blocking automatic paste/Enter with Forward recovery, and normal Quit/relaunch with empty history. Parent inspected the actual result, changed-destination and final-Quit screenshots, then independently verified zero Python listeners/workers. An initial readiness-only failure was traced to the parent SSH launcher inheriting XDG_SESSION_TYPE=tty; setting the confirmed desktop context x11 fixed setup without product changes. Both earlier sealed readiness observations and later passing reports remain unchanged. One tiny-ASR wording variation is recorded; it is not a gesture failure.
+
+Windows 10 `lab-windows-10-07`,6144 MiB: fresh supported-profile preparation is assigned separately to a source-aware coordinator; independent primary qualification is pending. Windows 11's environment block remains an explicit coverage gap.
+
+## Remaining work and limits
+
+Finish real native text/Enter-count, single-stop/Forward, silence/focus/error recovery and lifecycle workflows on Mint and a supported Windows guest; archive evidence, clean up owned leases, and publish only the verified package afterward. Physical microphones/mouse, Windows NVIDIA hardware, additional DPI scales and arbitrary recipient-app paste acknowledgement remain coverage limits. Secure/elevated targets, Wayland and unsupported app input remain outside scope. The installer is unsigned. The more conspicuous nonactivating no-input warning is queued in FUTURE.md and is not implemented in this candidate.
+
+---
+
 # Sayward 0.3.0 local punctuation qualification — 2026-11-04
 
 **Combined verdict: PASS WITH ISSUES.** Windows 10 and Linux Mint final workflows passed; Windows 11 final model setup passed but its end-to-end audio qualification remains incomplete. Runtime source `d5d31c519e1b1ec618311b273e3c5791df852919`; changes after this source are documentation only. Windows candidate SHA-256 `f8ef70d35062b5d1007be10c98101f4c6e16ca332280238bf8ff656efc3fa3fe`, 91,821,343 bytes, built by [CI run 41782678474](https://github.com/AndrewCrossley/Sayward/actions/runs/41782678474). Published assets preserve this exact tested runtime; subsequent changes are documentation only.
