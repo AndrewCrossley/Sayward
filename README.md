@@ -2,11 +2,11 @@
 
 Local mouse-toggle dictation for **Windows x64** and **Linux Mint Cinnamon X11**. Speech recognition runs locally with faster-whisper. Press Back to start recording, press it again to stop and transcribe, and use Forward to recover a completed transcript.
 
-Punctuation is required for ordinary prose. Release 0.3.0 adds fully local punctuation restoration before history or insertion, with word-preservation validation and one trailing separating space for prose. Windows 10 and Mint workflows passed native qualification; Windows 11 model setup passed, with full 0.3.0 audio qualification still incomplete. See `GOAL.md` for current status.
+Punctuation is required for ordinary prose. Fully local punctuation restoration runs before history or insertion, with word-preservation validation and one trailing separating space for prose. Version 0.3.1 adds optional Back-thumb double-stop submission. Windows 10 and Mint gesture/recovery/lifecycle workflows passed native qualification; Windows 11 remains unqualified for this update. See `GOAL.md` for current delivery status.
 
 ## Windows installer
 
-Download [Sayward 0.3.0 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.0) from the Releases page. Run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
+Download [Sayward 0.3.1 for Windows x64](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1) from the Releases page once published. Quit the previous tray listener, then run it for your user account; Python is included. The optional installer checkbox starts Sayward when you sign in. Open Sayward from the Start menu. The microphone tray icon may appear inside Windows' hidden-icons arrow; drag it into view if desired. Use the tray's practice guide for a first recording. If input stays silent, check the OS default microphone, mute and microphone permissions.
 
 First launch opens **Model setup**. Choose a model and click **Download selected model**, or choose an existing faster-whisper model folder. Medium (~1.5 GB) is the original quality setting; smaller models are faster on CPU. Setup downloads public model files from Hugging Face. No Hugging Face account is required. Punctuation setup then downloads its separate local model (~300 MB). Both setup dialogs can be reopened from the tray. Once installed, recognition and punctuation need no internet; audio/text are never sent to a service.
 
@@ -14,7 +14,7 @@ The installer is unsigned, so Windows may show an unknown-publisher/SmartScreen 
 
 Configuration and downloaded models live in `%LOCALAPPDATA%\Sayward`. Uninstall through Windows Settings or the Start-menu uninstall entry; login startup and installed program files are removed, while configuration/model downloads are retained.
 
-Release 0.3.0 ordinary-user dictation, punctuation, Copy/Forward recovery and Quit/relaunch passed on Windows 10 x64 in an admin-verified VM. Windows 11 final model download/setup passed, but its new audio workflow remains unqualified; see VERIFICATION.md. Historical 0.2.0 lifecycle evidence is retained separately. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
+Version 0.3.1 ordinary-user dictation, guarded double-stop submission, Forward recovery and Quit/relaunch passed on Windows 10 x64 in admin-verified VMs. Windows 11's lab attempt was unusable before product testing; its 0.3.1 audio/gesture workflow remains unqualified. See VERIFICATION.md for exact coverage and retained historical results. ARM Windows, secure desktops and elevated/password fields are unsupported. Run Sayward as an ordinary user; it does not elevate to type into protected apps.
 
 ## Linux
 
@@ -55,7 +55,7 @@ A changed native window/control focus prevents automatic insertion; recover with
 
 Linux: `uv sync` (add `--extra gpu` for private NVIDIA libraries), then `uv run --no-sync python -m pytest tests -q`. GUI/OS qualification uses isolated VMs.
 
-Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.3.0-x64.exe`. The frozen package bundles its MSVC runtime DLLs; a source-only Python environment needs the corresponding runtime dependencies in its DLL search path. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
+Windows: install Python 3.12 including Tcl/Tk, uv and Inno Setup 6; run `packaging/build-windows.ps1`. PyInstaller builds a windowed GUI plus a console worker, sharing one runtime directory. The worker runs hidden with redirected pipes, isolated by a kill-on-close Windows Job Object. Output is `dist/installer/Sayward-Setup-0.3.1-x64.exe`. The frozen package bundles its MSVC runtime DLLs; a source-only Python environment needs the corresponding runtime dependencies in its DLL search path. In a disposable interactive Windows VM, set `SAYWARD_NATIVE_TESTS=1` to include real Win32 clipboard/hook/singleton tests.
 
 CI builds installer candidates as draft Releases; qualification is required before publishing a release. See `GOAL.md`, `MIGRATION.md`, `NAME-CHECK.md`, `VERIFICATION.md` and `qa/regressions.json`. Original standalone Git history is retained; the old Tessera preservation checkpoint remains separate. AI-assistant/cloud integration remains outside scope. Release 0.2.0 predates the current required-punctuation milestone.
 

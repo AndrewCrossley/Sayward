@@ -1,6 +1,6 @@
 # Sayward — optional mouse submission
 
-Status: active, 2026-11-04. Public visibility and the Linux native workflow are verified; Windows native qualification remains required. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
+Status: qualified / final delivery pending, 2026-11-05. Public visibility and Windows 10/Mint native gesture, recovery and lifecycle workflows are verified; publish the exact tested 0.3.1 installer/evidence after owned-guest cleanup, then freeze this milestone. Windows 11 remains an explicit coverage gap. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
 
 Goal: Andrew can publish/use Sayward independently and deliberately submit a dictation from the mouse, without changing ordinary paste/recovery behavior.
 
@@ -13,6 +13,8 @@ Done when:
 Excluded: cloud assistant, new mouse bindings, general rewriting, arbitrary editor-context capture and a configurable gesture system. No host installed app/service changes.
 
 Proof: public GitHub metadata and local credential-signature/entropy scan; shared-session timing/failure tests; OS-boundary guards; disposable native form records text and Enter counts through real thumb events, plus recovery/Quit checks. Runtime-visible behavior needs isolated OS guests; ordinary source tests do not need to launch the app.
+
+Qualification proof: real-model host and Mint suites: 130 passed / 15 Windows-only skipped; final CI Windows: 126 passed / 6 skipped; Linux: 114 passed / 18 skipped; independent source review clean. Native Mint and Windows 10 cases cover single/double/near/late stop, Forward, silence and changed native destination. A separate same-installer Windows 10 delta closes the original post-relaunch gap with real populated history, normal Quit, one relaunch to Ready/empty history, no stale Forward and final process count 0. Combined verdict PASS WITH ISSUES for documented Windows 11, browser/hardware/display/latency limits. VERIFICATION.md preserves exact source/artifact hashes and all sealed reports.
 
 ---
 
