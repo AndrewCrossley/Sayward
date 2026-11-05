@@ -60,10 +60,12 @@ def test_button_events_dispatch_separately_without_starting_recording_on_forward
     app.closed = False
     app.config = Config()
     app.last_press = {}
+    app.stop_guard_at = None
     app.clear_submission()
-    app.desktop = SimpleNamespace(events=lambda: [8, 9, 9])
+    events=[[(8,100), (9,100), (9,100.1)],[]]
+    app.desktop = SimpleNamespace(events=lambda: events.pop(0))
     calls = []
-    app.toggle = lambda: calls.append('record')
+    app.toggle = lambda **_: calls.append('record')
     app.paste_last = lambda: calls.append('paste')
     assert app.poll()
     assert calls == ['record', 'paste']

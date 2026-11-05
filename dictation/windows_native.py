@@ -3,6 +3,7 @@ import ctypes as C
 from ctypes import wintypes as W
 import queue
 import threading
+import time
 
 U = C.WinDLL('user32', use_last_error=True)
 K = C.WinDLL('kernel32', use_last_error=True)
@@ -75,6 +76,7 @@ K.CreateJobObjectW.argtypes = [C.c_void_p, W.LPCWSTR]
 K.CreateJobObjectW.restype = W.HANDLE
 K.SetInformationJobObject.argtypes = [W.HANDLE, C.c_int, C.c_void_p, W.DWORD]
 K.AssignProcessToJobObject.argtypes = [W.HANDLE, W.HANDLE]
+K.GetTickCount64.restype = C.c_ulonglong
 
 
 class Singleton:
@@ -150,11 +152,13 @@ class Desktop:
         @HOOK
         def callback(code, event, data):
             if code >= 0 and event in (0x020B,0x020C):
-                extra = C.cast(data, C.POINTER(MouseEvent)).contents.mouseData >> 16
+                mouse = C.cast(data, C.POINTER(MouseEvent)).contents
+                extra = mouse.mouseData >> 16
                 button = {1:8,2:9}.get(extra)
                 if button in self.buttons:
                     if event == 0x020B:
-                        self.queue.put(button)
+                        age = ((K.GetTickCount64() & 0xffffffff) - mouse.time) & 0xffffffff
+                        self.queue.put((button, time.monotonic() - age / 1000))
                     return 1
             return U.CallNextHookEx(None, code, event, data)
         self.callback = callback

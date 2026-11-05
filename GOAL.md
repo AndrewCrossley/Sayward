@@ -1,14 +1,14 @@
 # Sayward — optional mouse submission
 
-Status: active, 2026-11-04. Andrew authorized making the existing repository public and double-clicking the recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
+Status: active, 2026-11-04. Andrew authorized making the existing repository public and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter, on Windows and Linux.
 
 Goal: Andrew can publish/use Sayward independently and deliberately submit a dictation from the mouse, without changing ordinary paste/recovery behavior.
 
 Done when:
 1. Public repository retains existing Git history and releases after checking tracked history/release evidence for private data and credentials.
-2. One stop click still pastes without Enter. A second stop click within 0.75 seconds requests exactly one Enter for that recording; it never starts another capture. Recognition/punctuation continue immediately; exceptionally fast results wait only for the gesture window.
+2. One stop click still pastes without Enter. A second Back thumb stop click within 0.75 seconds requests exactly one Enter for that recording; it never starts another capture. Recognition/punctuation continue immediately; exceptionally fast results wait only for the gesture window.
 3. Enter follows validated punctuation and paste, with target/modifier checks repeated after clipboard delivery. Silence, failed processing/paste, changed focus, auto-stop, retries and Quit cannot leak an Enter request into another result. Forward stays paste-only.
-4. Deterministic timing/error regressions and native Windows/Linux mouse/form workflows prove the behavior and visible feedback. Updated guide and installer explain the gesture.
+4. Deterministic timing/error regressions and native Windows/Linux mouse/form workflows prove the behavior and visible feedback. Updated guide and installer explain the gesture; GUI/tray Start/Stop stays paste-only.
 
 Excluded: cloud assistant, new mouse bindings, general rewriting, arbitrary editor-context capture and a configurable gesture system. No host installed app/service changes.
 

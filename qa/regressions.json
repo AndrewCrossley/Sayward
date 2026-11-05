@@ -188,7 +188,7 @@
       "Replace clipboard externally",
       "Forward again"
     ],
-    "expected": "Consecutive results are separated, history stays trimmed, recovered text ignores external clipboard, and no Enter/newline is generated. Recognized literals get no added separator."
+    "expected": "Consecutive results are separated, history stays trimmed, recovered text ignores external clipboard, and a single stop or Forward generates no Enter/newline. Recognized literals get no added separator."
   },
   {
     "id": "PUNCT-TLS-001",

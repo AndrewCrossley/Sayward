@@ -1,7 +1,7 @@
 """X11 mouse grab and guarded clipboard paste; never uses shell interpolation."""
 import os
 import time
-from Xlib import X, XK, display, error
+from Xlib import X, XK, Xatom, display, error
 from Xlib.ext import xtest
 
 
@@ -13,6 +13,19 @@ class Desktop:
         self.root = self.display.screen().root
         self.button = button
         self.buttons = (button, paste_button)
+        # X timestamps have their own 32-bit millisecond epoch. Anchor it once
+        # using an unmapped property-event window, before grabbing any buttons.
+        clock = self.root.create_window(0, 0, 1, 1, 0, X.CopyFromParent,
+            X.InputOnly, X.CopyFromParent, event_mask=X.PropertyChangeMask)
+        try:
+            clock.change_property(self.display.intern_atom('_SAYWARD_CLOCK'), Xatom.INTEGER, 32, [1])
+            self.display.flush()
+            stamp = self.display.next_event()
+            while stamp.type != X.PropertyNotify or stamp.window.id != clock.id:
+                stamp = self.display.next_event()
+            self.clock_ms, self.clock_at = stamp.time, time.monotonic()
+        finally:
+            clock.destroy()
         errors = []
         for bound in self.buttons:
             self.root.grab_button(
@@ -34,7 +47,10 @@ class Desktop:
         while self.display.pending_events():
             ev = self.display.next_event()
             if ev.type == X.ButtonPress and ev.detail in self.buttons:
-                pressed.append(ev.detail)
+                wrap = (2**32) / 1000
+                at = self.clock_at + ((ev.time - self.clock_ms) & 0xffffffff) / 1000
+                at += round((time.monotonic() - at) / wrap) * wrap
+                pressed.append((ev.detail, at))
         return pressed
 
     def paste(self, text, target):

@@ -9,7 +9,9 @@ from dictation.session import Session
 def app(monkeypatch):
     clock=[100.0];events=[];actions=[];jobs=[]
     monkeypatch.setattr('dictation.session.time.monotonic',lambda:clock[0])
-    desktop=SimpleNamespace(events=lambda: list(events),focus=lambda:42,
+    def consume():
+        batch=events[:];events.clear();return batch
+    desktop=SimpleNamespace(events=consume,focus=lambda:42,
         paste=lambda text,target:actions.append(('paste',text,target)),
         enter=lambda target:actions.append(('enter',target)),close=lambda:None)
     instance=Session(Config(),desktop,lambda *_:None)
@@ -25,7 +27,7 @@ def app(monkeypatch):
 
 
 def click(app,at):
-    app.clock[0]=at;app.events[:]=[8];app.poll();app.events.clear()
+    app.clock[0]=at;app.events[:]=[(8,at)];app.poll();app.events.clear()
 
 
 def stop(app):
@@ -36,6 +38,7 @@ def stop(app):
 def result(app,text='Hello world.'):
     app.pending=('hello world','cpu');app.punctuation_auto_paste=True
     app.punctuated(text,None)
+    app.poll()
 
 
 @pytest.mark.parametrize('delay',[0.01,0.10,0.299,0.30,0.749,0.75])
@@ -116,7 +119,7 @@ def test_auto_stop_and_quit_do_not_send_enter(app):
     app.tick();click(app,100.1);result(app)
     assert app.actions==[('paste','Hello world. ',42)]
     app.actions.clear();app.clear_submission();app.state='recording'
-    app.clock[0]=101;app.toggle();click(app,101.2);result(app);app.shutdown()
+    click(app,101);click(app,101.2);result(app);app.shutdown()
     app.clock[0]=103;assert not app.poll()
     assert app.actions==[('paste','Hello world. ',42)]
 
@@ -127,3 +130,72 @@ def test_enter_delay_starts_after_clipboard_preparation_returns(app):
     app.desktop.paste=paste;result(app)
     app.poll();assert len(app.actions)==1
     app.clock[0]+=0.151;app.poll();assert app.actions[-1]==('enter',42)
+
+
+@pytest.mark.parametrize('gap,expected',[(1.1,False),(0.2,True)])
+def test_queued_clicks_use_original_native_times_after_a_ui_stall(app,gap,expected):
+    app.state='recording';app.clock[0]=102
+    app.events[:]=[(8,100),(8,100+gap)];app.poll();app.events.clear()
+    assert app.submit_requested is expected
+    result(app);app.clock[0]=103;app.poll()
+    assert sum(action[0]=='enter' for action in app.actions)==int(expected)
+
+
+def test_slow_recorder_stop_does_not_lose_a_second_click_that_arrived_in_time(app):
+    app.state='recording'
+    def slow_stop():
+        app.clock[0]=101;app.events.append((8,100.2));return 'unused-public-fixture.wav'
+    app.recorder.stop=slow_stop
+    app.events[:]=[(8,100)]
+    # Simulate a second native event being queued while recorder.stop blocked.
+    app.poll()
+    assert app.submit_requested
+    result(app);app.clock[0]=102;app.poll()
+    assert app.actions[-1]==('enter',42)
+
+
+def test_completion_callback_cannot_paste_before_pending_input_is_drained(app):
+    stop(app);app.clock[0]=102
+    app.pending=('hello world','cpu');app.punctuation_auto_paste=True
+    app.punctuated('Hello world.',None)
+    assert app.actions==[]
+    app.events[:]=[(8,100.2)];app.poll();app.events.clear()
+    assert app.actions==[('paste','Hello world. ',42)]
+    app.clock[0]=103;app.poll()
+    assert app.actions[-1]==('enter',42)
+
+
+def test_practice_or_tray_buttons_cannot_arm_enter_without_native_click_times(app):
+    app.state='recording';app.toggle()
+    app.clock[0]+=0.2;app.toggle();result(app)
+    app.clock[0]+=1;app.poll()
+    assert app.actions==[('paste','Hello world. ',42)]
+
+
+@pytest.mark.parametrize('failure',['silent','asr','punctuation','word-change'])
+def test_fast_failure_before_second_stop_consumes_click_without_recording(app,failure):
+    stop(app);app.clock[0]=100.1
+    if failure=='silent':app.finished(('', 'cpu'),None)
+    elif failure=='asr':app.finished(None,'ASR failed')
+    elif failure=='punctuation':
+        app.pending=('hello world','cpu');app.punctuated(None,'Missing model')
+    else:result(app,'Changed words.')
+    count=len(app.jobs);click(app,100.4)
+    assert app.state!='recording' and app.actions==[] and len(app.jobs)==count
+    assert not app.submit_requested and app.enter_due is None
+
+
+def test_capture_stop_error_does_not_turn_second_stop_into_a_new_recording(app):
+    app.state='recording'
+    app.recorder.stop=lambda:(_ for _ in ()).throw(RuntimeError('Capture interrupted'))
+    click(app,100);click(app,100.4)
+    assert app.state=='error' and app.actions==[] and app.jobs==[]
+
+
+def test_original_stop_time_remains_eligible_while_inference_is_still_pending(app):
+    stop(app);app.clock[0]=101;app.poll()
+    # Native-hook dispatch can be delayed independently of the UI turn.
+    app.events[:]=[(8,100.2)];app.poll()
+    assert app.submit_requested
+    result(app);app.clock[0]=102;app.poll()
+    assert app.actions[-1]==('enter',42)
