@@ -57,7 +57,7 @@ class Desktop:
         from gi.repository import Gtk, Gdk
         if not target or target in (X.NONE, X.PointerRoot) or self.focus() != target:
             raise RuntimeError("Focus changed. Focus a text field and press Forward to paste the selected transcript.")
-        if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask):
+        if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask):
             raise RuntimeError("Release keyboard modifiers, then press Forward to paste the selected transcript.")
         selections = [Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD), Gtk.Clipboard.get(Gdk.SELECTION_PRIMARY)]
         for clipboard in selections:
@@ -87,7 +87,7 @@ class Desktop:
     def enter(self, target):
         if not target or target in (X.NONE, X.PointerRoot) or self.focus() != target:
             raise RuntimeError('Focus changed; Enter cancelled.')
-        if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod4Mask):
+        if self.root.query_pointer().mask & (X.ShiftMask | X.ControlMask | X.Mod1Mask | X.Mod3Mask | X.Mod4Mask | X.Mod5Mask):
             raise RuntimeError('Keyboard modifiers are held; Enter cancelled.')
         key = self.display.keysym_to_keycode(XK.string_to_keysym('Return'))
         if not key:

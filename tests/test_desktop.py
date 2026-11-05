@@ -44,7 +44,7 @@ def test_both_thumb_buttons_are_consumed_and_unbound_on_close(monkeypatch):
     assert removed == [8, 9]
 
 
-@pytest.mark.parametrize('focus,mask',[(None,0),(11,0),(10,X.ControlMask),(10,X.ShiftMask),(10,X.Mod4Mask)])
+@pytest.mark.parametrize('focus,mask',[(None,0),(11,0),(10,X.ControlMask),(10,X.ShiftMask),(10,X.Mod1Mask),(10,X.Mod3Mask),(10,X.Mod4Mask),(10,X.Mod5Mask)])
 def test_enter_never_injects_into_changed_focus_or_with_modifiers(monkeypatch,focus,mask):
     desktop=Desktop.__new__(Desktop);desktop.focus=lambda:focus
     desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=mask))
@@ -55,7 +55,7 @@ def test_enter_never_injects_into_changed_focus_or_with_modifiers(monkeypatch,fo
 
 def test_enter_is_one_return_pair_without_clipboard_or_paste_modifiers(monkeypatch):
     desktop=Desktop.__new__(Desktop);desktop.focus=lambda:10
-    desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=0))
+    desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=X.LockMask | X.Mod2Mask))
     desktop.display=types.SimpleNamespace(keysym_to_keycode=lambda _:36,sync=lambda:None)
     calls=[];monkeypatch.setattr(xtest,'fake_input',lambda _,event,key:calls.append((event,key)))
     desktop.enter(10)
@@ -70,3 +70,13 @@ def test_x11_timestamp_wrap_preserves_queued_click_ages(monkeypatch):
              types.SimpleNamespace(type=X.ButtonPress,detail=8,time=0x0000043c)]
     desktop.display=types.SimpleNamespace(pending_events=lambda:len(pending),next_event=lambda:pending.pop(0))
     assert desktop.events()==[(8,100.0),(8,101.1)]
+
+
+@pytest.mark.parametrize('mask',[X.Mod3Mask,X.Mod5Mask])
+def test_paste_with_altgr_or_other_nonlock_modifier_never_changes_clipboard(monkeypatch,mask):
+    desktop=Desktop.__new__(Desktop);desktop.focus=lambda:10
+    desktop.root=types.SimpleNamespace(query_pointer=lambda:types.SimpleNamespace(mask=mask))
+    monkeypatch.setattr(Gtk.Clipboard,'get',lambda *_:pytest.fail('Modifier guard must run before copying'))
+    calls=[];monkeypatch.setattr(xtest,'fake_input',lambda *args:calls.append(args))
+    with pytest.raises(RuntimeError,match='modifiers'):desktop.paste('Public words.',10)
+    assert calls==[]
