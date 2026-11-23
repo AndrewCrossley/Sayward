@@ -163,15 +163,21 @@ class App(Session):
 
     def issue_meter(self):
         """Glow with the default mic while an issue recording is live and dictation is not."""
-        if not self.monitor.running:
+        _, epoch, max_s, mic = self.issue_live
+        # Sayward can only measure the default input; for another source show a steady badge.
+        metered = mic == "default"
+        if metered and not self.monitor.running:
             try:
                 self.monitor.start()
             except Exception:
                 pass  # The recorder still captures; only the glow is lost.
         now = time.monotonic()
-        quiet = self.monitor.running and now - self.monitor.last_signal >= 2
-        raw = self.monitor.level if now - self.monitor.level_updated_at < 0.4 else 0.0
-        self.meter_level = max(raw, self.meter_level * 0.72)
+        quiet = metered and self.monitor.running and now - self.monitor.last_signal >= 2
+        if metered:
+            raw = self.monitor.level if now - self.monitor.level_updated_at < 0.4 else 0.0
+            self.meter_level = max(raw, self.meter_level * 0.72)
+        else:
+            self.meter_level = 0.5
         if self.issue_glow():
             frame = min(11, round(self.meter_level * 11))
             if frame != self.meter_frame:
@@ -179,7 +185,6 @@ class App(Session):
                 self.indicator.set_icon_full(str(path), "Issue recording")
                 self.meter_frame = frame
         if not self.issue_busy:
-            _, epoch, max_s = self.issue_live
             elapsed = int(time.time() - epoch) if epoch else None
             label = "Stop issue recording" + (f" ({elapsed // 60}:{elapsed % 60:02d})" if elapsed is not None else "")
             if elapsed is not None and max_s and elapsed >= max_s:

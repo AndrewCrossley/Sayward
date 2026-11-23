@@ -32,7 +32,7 @@ class IssueRecorder:
         self.last_bundle = None
 
     def live(self):
-        """(bundle_dir, started_epoch, max_seconds) of the live recording, or None."""
+        """(bundle_dir, started_epoch, max_seconds, mic_source) of the live recording, or None."""
         try:
             bundle = (self.root / ".active").read_text().strip()
         except OSError:
@@ -42,9 +42,10 @@ class IssueRecorder:
         try:
             session = json.loads((Path(bundle) / "session.json").read_text())
             epoch, max_s = float(session["epoch"]), int(session.get("max_s") or 0)
+            mic = str(session.get("mic") or "default")
         except (OSError, ValueError, KeyError, TypeError, AttributeError):
-            epoch, max_s = None, 0
-        return bundle, epoch, max_s
+            epoch, max_s, mic = None, 0, "default"
+        return bundle, epoch, max_s, mic
 
     def _run(self, action, timeout):
         try:

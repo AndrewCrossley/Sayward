@@ -127,7 +127,7 @@ class Session:
         self.issue_busy = False
         # The CLI drops .active before finalizing, and start refuses an unfinished bundle:
         # either failure means the next toggle must run stop again.
-        self.issue_unfinished = bool(error) and (stopping or "unfinished" in error)
+        self.issue_unfinished = bool(error) and "not recording" not in error and (stopping or "unfinished" in error)
         self.refresh_issue(force=True)
         if self.state not in ("recording", "working"):
             if error:
@@ -141,6 +141,8 @@ class Session:
         if not self.issue:
             return
         live = self.issue.live()
+        if live:
+            self.issue_unfinished = False
         changed = bool(live) != bool(self.issue_live)
         self.issue_live = live
         if changed or force:

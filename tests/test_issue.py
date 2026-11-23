@@ -56,8 +56,8 @@ def test_cli_contract_start_live_stop(cli):
     script, root = cli
     issue = IssueRecorder(str(script))
     assert issue.root == root and issue.live() is None
-    bundle, epoch, max_s = issue.start()
-    assert bundle == str(root / "20261122-120000") and epoch == 1795400000.5 and max_s == 1800
+    bundle, epoch, max_s, mic = issue.start()
+    assert bundle == str(root / "20261122-120000") and epoch == 1795400000.5 and max_s == 1800 and mic == "default"
     with pytest.raises(RuntimeError, match="already recording"):
         issue.start()
     assert issue.stop() == bundle and issue.last_bundle == bundle and issue.live() is None
@@ -68,7 +68,7 @@ def test_cli_contract_start_live_stop(cli):
 def test_live_survives_a_missing_or_corrupt_session_file(cli):
     script, root = cli
     (root / ".active").write_text(str(root / "gone") + "\n")
-    assert IssueRecorder(str(script)).live() == (str(root / "gone"), None, 0)
+    assert IssueRecorder(str(script)).live() == (str(root / "gone"), None, 0, "default")
 
 
 def test_config_update_keeps_other_keys(tmp_path):
@@ -171,7 +171,7 @@ def test_forward_while_idle_still_pastes_history(app):
 
 
 def test_double_stop_submission_is_unaffected_by_issue_recording(app):
-    app.issue.live_value = ("bundle", 1.0, 1800); app.issue_live = app.issue.live_value
+    app.issue.live_value = ("bundle", 1.0, 1800, "default"); app.issue_live = app.issue.live_value
     press(app, 8, 100.0); press(app, 8, 101.0); press(app, 8, 101.2)
     assert app.submit_requested and ("issue",) not in app.actions
 
@@ -203,7 +203,7 @@ def test_tick_follows_recordings_started_elsewhere(app):
     changed = []
     app.issue_changed = lambda: changed.append(bool(app.issue_live))
     app.state = "idle"
-    app.issue.live_value = ("bundle", 1.0, 1800); app.tick()
+    app.issue.live_value = ("bundle", 1.0, 1800, "default"); app.tick()
     app.tick()
     app.issue.live_value = None; app.tick()
     assert changed == [True, False]
@@ -245,7 +245,7 @@ def test_tray_meter_glows_and_shows_elapsed_time_while_issue_recording(monkeypat
     monkeypatch.setattr(app_module.time, "time", lambda: 1000 + 125)
     app = App.__new__(App)
     app.closed, app.state, app.issue_busy = False, "idle", False
-    app.issue_live = ("bundle", 1000.0, 1800)
+    app.issue_live = ("bundle", 1000.0, 1800, "default")
     app.meter_level, app.meter_frame = 0, None
     started = []
     app.monitor = SimpleNamespace(running=False, level=0.9, level_updated_at=100, last_signal=99,
@@ -260,3 +260,37 @@ def test_tray_meter_glows_and_shows_elapsed_time_while_issue_recording(monkeypat
     assert labels[-1].endswith("no mic input; check mute")
     app.state = "working"; count = len(icons); app.meter()
     assert len(icons) == count  # the amber working icon stays
+
+
+def test_recovery_clears_when_the_bundle_was_finalized_elsewhere(app, cli):
+    script, root = cli
+    del app.issue_toggle
+    app.issue = IssueRecorder(str(script))
+    done = threading.Event()
+    original = app.issue_done
+    app.issue_done = lambda *args: (original(*args), done.set())
+    app.issue_changed = lambda: None
+    app.state, app.issue_unfinished = "idle", True  # a finalize failed earlier
+    done.clear(); app.issue_toggle(); assert done.wait(10)  # stop: "not recording"
+    assert not app.issue_unfinished
+    done.clear(); app.issue_toggle(); assert done.wait(10)
+    assert app.issue_live and "Issue recording" in app.message
+
+
+def test_nondefault_recording_source_gets_a_steady_badge_not_the_default_mic(monkeypatch):
+    pytest.importorskip("gi")
+    pytest.importorskip("Xlib")
+    from dictation.app import App
+    from dictation import app as app_module
+    monkeypatch.setattr(app_module.time, "monotonic", lambda: 100)
+    monkeypatch.setattr(app_module.time, "time", lambda: 1010)
+    app = App.__new__(App)
+    app.closed, app.state, app.issue_busy = False, "idle", False
+    app.issue_live = ("bundle", 1000.0, 1800, "alsa_input.usb-other")
+    app.meter_level, app.meter_frame = 0, None
+    app.monitor = SimpleNamespace(running=False, start=lambda: pytest.fail("metered the wrong mic"))
+    labels, icons = [], []
+    app.issue_item = SimpleNamespace(get_label=lambda: labels[-1] if labels else "", set_label=labels.append)
+    app.indicator = SimpleNamespace(set_icon_full=lambda path, _: icons.append(path))
+    app.meter()
+    assert labels[-1] == "Stop issue recording (0:10)" and icons[-1].endswith("issue-6.svg")
