@@ -1,6 +1,7 @@
 """Optional issue recording: CLI contract, Back chooser and Back-then-Forward, without a display."""
 import json
 import os
+import sys
 import threading
 from types import SimpleNamespace
 import pytest
@@ -32,6 +33,8 @@ esac
 
 @pytest.fixture
 def cli(tmp_path, monkeypatch):
+    if sys.platform == "win32":
+        pytest.skip("record-issue is a Linux shell CLI; the feature is absent on Windows")
     script = tmp_path / "record-issue"
     script.write_text(FAKE_CLI)
     script.chmod(0o700)
@@ -52,6 +55,11 @@ def test_recorder_is_found_only_from_config_or_path_and_only_on_linux(cli, tmp_p
     assert find_recorder(Config()) is None
     monkeypatch.setattr("dictation.issue.sys.platform", "win32")
     assert find_recorder(Config(issue_recorder=str(script))) is None
+
+
+def test_feature_is_absent_on_windows(tmp_path, monkeypatch):
+    monkeypatch.setattr("dictation.issue.sys.platform", "win32")
+    assert find_recorder(Config(issue_recorder=str(tmp_path))) is None and find_recorder(Config()) is None
 
 
 def test_cli_contract_start_live_stop(cli):
