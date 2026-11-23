@@ -64,7 +64,7 @@ class IssueRecorder:
     def start(self):
         # A recorder that fails its health check still leaves the others running (exit 0).
         _, errors = self._run("start", 60)
-        self.warnings = [line.removeprefix("WARNING: ") for line in errors if line.startswith("WARNING:")]
+        self.warnings = [line.removeprefix("WARNING: ").split("; see ")[0] for line in errors if line.startswith("WARNING:")]
         return self.live()
 
     def stop(self):

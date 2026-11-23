@@ -1,3 +1,34 @@
+# Sayward optional issue recording (Linux X11) — 2026-11-22
+
+**Verdict: PASS WITH ISSUES** for the Mint X11 scope in GOAL.md. No Windows release: the feature is absent on Windows, and CI's Windows job runs the full suite.
+
+- **Source:** branch `feature/issue-recording`. Host suite with the real pinned punctuation weights and GTK tests enabled: **153 passed, 15 skipped** (Windows-only). Suite before this milestone, same conditions: 130 passed, 15 skipped. `tests/test_issue.py` covers:
+  - the `record-issue` CLI contract;
+  - chooser thresholds and expiry order;
+  - the Back→Forward chord and the persisted setting;
+  - recordings started or stopped externally, finalize-failure recovery, a lost `.active` marker and degraded starts;
+  - the non-default-mic badge;
+  - unchanged single/double stop and Forward behaviour when no recorder exists.
+- **Independent review:** four gpt-6.1-sol passes. Every finding (eight in total) was fixed with a regression test: finalize recovery, chooser expiry order, a GTK meter fixture, a stale recovery flag, metering the wrong mic, degraded starts, a lost marker and HiDPI chooser placement.
+- **Native check:** Mint 22.3 Cinnamon X11 VM `lab-mint-worker-06`, 4096 MiB, guest `sudo -n true` verified, 1280×800, PipeWire 1.0.5, virtual microphone with synthetic speech. Scenarios A–L passed on 4d4b187. Reruns of C, D, F and G plus a degraded-start check passed on dae21eb. Evidence and the full report: [evidence/issue-recording/OBSERVATIONS.md](evidence/issue-recording/OBSERVATIONS.md).
+  - The chooser took no focus.
+  - The frame passed clicks through and appeared in `screen.mkv`.
+  - Dictation worked during an issue recording, with both captures receiving speech.
+  - The glow followed speech, and the no-input label appeared after silence.
+  - Back→Forward, tray and terminal start/stop all worked.
+  - The setting persisted across relaunch.
+  - Quit kept the recording running, and relaunch picked it up again.
+  - Double-stop Enter stayed at exactly one.
+  - The lease was released and the controller stopped.
+- **Limits (none blocking):**
+  - Single 100%-scale monitor only, so HiDPI and multi-monitor frames are untested natively.
+  - Under PipeWire, a mistyped `RECORD_ISSUE_MIC` silently records the default mic. That is a record-issue matter.
+  - Finalize warnings on stop are not surfaced in the tray.
+  - The cold-start first capture after install was slow or empty in the VM (resource-bound).
+  - Clicking the Cinnamon panel menu with xdotool was inconclusive even without the frame, so click-through was shown at the top edge and by checking which window is under the pointer.
+
+---
+
 # Sayward 0.3.1 optional Back-thumb submission — 2026-11-05
 
 **Combined verdict: PASS WITH ISSUES.** Native Windows 10 and Mint gesture/recovery/lifecycle workflows passed; Windows 11 remains unqualified because its test environment was unusable. The verified package is published as [0.3.1](https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1). Runtime source `352604a6e42283514d83ab20d018084260319dab`. Later changes are documentation only. Reviewed installer:91,814,362 bytes, SHA256 `b8805e73a00d9841de82e81b77b10ddca7f8b428f4d4f8040cd2cd6d373533da`, built by [CI run 41950819847](https://github.com/AndrewCrossley/Sayward/actions/runs/41950819847).

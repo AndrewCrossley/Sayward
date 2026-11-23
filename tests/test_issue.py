@@ -309,7 +309,7 @@ def test_degraded_start_is_reported_not_shown_as_healthy(app, cli):
     app.state = "idle"
     (root / "warn").write_text("")
     app.issue_toggle(); assert done.wait(10)
-    assert app.issue_live and app.state == "error" and "voice recorder not running" in app.message
+    assert app.issue_live and app.state == "error" and app.message.endswith("voice recorder not running")
 
 
 def test_lost_active_marker_makes_the_next_toggle_stop(app):

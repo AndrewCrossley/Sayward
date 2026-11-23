@@ -1,6 +1,6 @@
 # Sayward — optional issue recording (Linux X11)
 
-Status: active, approved by Andrew 2026-11-22 (relayed by the record-issue-session hypervisor). Sayward remains Whisper-based; any Parakeet evaluation is a later, separate measurement-only branch.
+Status: complete / frozen, 2026-11-22 (approved by Andrew the same day, relayed by the record-issue-session hypervisor). Verdict PASS WITH ISSUES; see VERIFICATION.md. Activation: relaunch Sayward after `record-issue` is on PATH. Sayward remains Whisper-based; any Parakeet evaluation is a later, separate measurement-only branch.
 
 Goal: on Mint X11, Andrew can start and stop a narrated issue recording (screen + voice + input, via the separate `record-issue` CLI) from the same Back button and tray he dictates with, and see while it runs that the screen and mic are live. Sayward without the CLI, and Windows, behave exactly as 0.3.1.
 
