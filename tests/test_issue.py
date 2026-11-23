@@ -18,8 +18,12 @@ case "$1" in
     echo '{"version": 1, "epoch": 1795400000.5, "max_s": 1800}' > "$d/session.json"
     echo "$d" > "$root/.active"; echo "recording -> $d" ;;
   stop)
-    [ -f "$root/.active" ] || { echo "record-issue: not recording" >&2; exit 1; }
-    d=$(cat "$root/.active"); rm "$root/.active"; echo "bundle: $d"; echo "next: process $d" ;;
+    if [ ! -f "$root/.active" ]; then
+      [ -f "$root/unfinished" ] || { echo "record-issue: not recording" >&2; exit 1; }
+      d=$(cat "$root/unfinished")
+    else d=$(cat "$root/.active"); rm "$root/.active"; fi
+    if [ -f "$root/fail-finalize" ]; then echo "$d" > "$root/unfinished"; echo "finalize: boom" >&2; exit 1; fi
+    rm -f "$root/unfinished"; echo "bundle: $d"; echo "next: process $d" ;;
 esac
 '''
 
@@ -203,3 +207,56 @@ def test_tick_follows_recordings_started_elsewhere(app):
     app.tick()
     app.issue.live_value = None; app.tick()
     assert changed == [True, False]
+
+
+def test_late_poll_after_expiry_never_switches_to_issue_recording(app):
+    press(app, 8, 100.0)
+    app.pointer[1] += 500; app.clock[0] = 100 + CHOOSER_SECONDS + 0.1; app.poll()
+    assert app.state == "recording" and ("issue",) not in app.actions and app.chooser is None
+
+
+def test_failed_finalize_is_retried_by_the_next_toggle(app, cli):
+    script, root = cli
+    del app.issue_toggle
+    app.issue = IssueRecorder(str(script))
+    done = threading.Event()
+    original = app.issue_done
+    app.issue_done = lambda *args: (original(*args), done.set())
+    app.issue_changed = lambda: None
+    app.state = "idle"
+    def toggle():
+        done.clear(); app.issue_toggle(); assert done.wait(10)
+    toggle()
+    (root / "fail-finalize").write_text("")
+    toggle()
+    assert app.state == "error" and "boom" in app.message and app.issue_live is None and app.issue_unfinished
+    (root / "fail-finalize").unlink()
+    toggle()  # stop again, not start
+    assert app.issue.last_bundle and not app.issue_unfinished and not (root / "unfinished").exists()
+    assert "bundle saved" in app.message
+
+
+def test_tray_meter_glows_and_shows_elapsed_time_while_issue_recording(monkeypatch):
+    pytest.importorskip("gi")
+    pytest.importorskip("Xlib")
+    from dictation.app import App
+    from dictation import app as app_module
+    monkeypatch.setattr(app_module.time, "monotonic", lambda: 100)
+    monkeypatch.setattr(app_module.time, "time", lambda: 1000 + 125)
+    app = App.__new__(App)
+    app.closed, app.state, app.issue_busy = False, "idle", False
+    app.issue_live = ("bundle", 1000.0, 1800)
+    app.meter_level, app.meter_frame = 0, None
+    started = []
+    app.monitor = SimpleNamespace(running=False, level=0.9, level_updated_at=100, last_signal=99,
+                                  start=lambda: (started.append(1), setattr(app.monitor, "running", True)))
+    labels, icons = [], []
+    app.issue_item = SimpleNamespace(get_label=lambda: labels[-1] if labels else "", set_label=labels.append)
+    app.indicator = SimpleNamespace(set_icon_full=lambda path, _: icons.append(path))
+    assert app.meter()
+    assert started and labels[-1] == "Stop issue recording (2:05)"
+    assert "issue-" in icons[-1] and not icons[-1].endswith("issue-0.svg")
+    app.monitor.last_signal = 97; app.meter()
+    assert labels[-1].endswith("no mic input; check mute")
+    app.state = "working"; count = len(icons); app.meter()
+    assert len(icons) == count  # the amber working icon stays

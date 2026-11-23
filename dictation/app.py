@@ -202,7 +202,8 @@ class App(Session):
         if busy:
             self.issue_item.set_label("Finalizing issue recording…" if live else "Starting issue recording…")
         elif not live:
-            self.issue_item.set_label("Record issue (screen + voice)")
+            self.issue_item.set_label("Finish saving the unfinished issue recording" if self.issue_unfinished
+                                      else "Record issue (screen + voice)")
         self.bundle_item.set_sensitive(bool(self.issue.last_bundle))
         if live and not self.border_windows:
             self.show_border()
@@ -239,6 +240,7 @@ class App(Session):
         window = Gtk.Window(type=Gtk.WindowType.POPUP)
         window.set_accept_focus(False)
         window.set_default_size(width, height)
+        window.set_size_request(width, height)
         window.move(x, y)
         window.input_shape_combine_region(cairo.Region())
         return window

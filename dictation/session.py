@@ -26,6 +26,8 @@ class Session:
         self.stop_guard_at = None
         # Optional issue recording; a view sets an IssueRecorder when the CLI exists.
         self.issue, self.issue_live, self.issue_busy = None, None, False
+        # A stop whose finalize failed leaves an unfinished bundle that only `stop` recovers.
+        self.issue_unfinished = False
         self.chooser = None
         self.clear_submission()
         self.idle_deadline = 0
@@ -85,10 +87,11 @@ class Session:
             _, y = self.desktop.pointer()
         except Exception:
             return self.close_chooser()
-        if y - y0 >= CHOOSER_DOWN_PX:
-            self.issue_from_capture()
-        elif y0 - y >= CHOOSER_UP_PX or time.monotonic() - opened >= CHOOSER_SECONDS:
+        # Expiry first: a late poll must not turn movement after the window into a switch.
+        if time.monotonic() - opened >= CHOOSER_SECONDS or y0 - y >= CHOOSER_UP_PX:
             self.close_chooser()
+        elif y - y0 >= CHOOSER_DOWN_PX:
+            self.issue_from_capture()
 
     def close_chooser(self):
         if self.chooser:
@@ -106,7 +109,7 @@ class Session:
     def issue_toggle(self):
         if not self.issue or self.issue_busy or self.closed:
             return
-        stopping = bool(self.issue_live)
+        stopping = bool(self.issue_live) or self.issue_unfinished
         work = self.issue.stop if stopping else self.issue.start
         self.issue_busy = True
         self.issue_changed()
@@ -122,6 +125,9 @@ class Session:
 
     def issue_done(self, stopping, value, error):
         self.issue_busy = False
+        # The CLI drops .active before finalizing, and start refuses an unfinished bundle:
+        # either failure means the next toggle must run stop again.
+        self.issue_unfinished = bool(error) and (stopping or "unfinished" in error)
         self.refresh_issue(force=True)
         if self.state not in ("recording", "working"):
             if error:
