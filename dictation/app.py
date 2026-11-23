@@ -260,7 +260,11 @@ class App(Session):
         self.hide_chooser()
         from gi.repository import Gdk
         try:
-            g = Gdk.Display.get_default().get_monitor_at_point(x, y).get_geometry()
+            # x, y are X11 pixels (gesture tracking); GTK places windows in logical
+            # (scaled) coordinates, so draw from GDK's own pointer position.
+            display = Gdk.Display.get_default()
+            _, x, y = display.get_default_seat().get_pointer().get_position()
+            g = display.get_monitor_at_point(x, y).get_geometry()
             # Beside the pointer, flipped left near the right edge, kept on its monitor.
             left = x + 22 if x + 22 + 260 <= g.x + g.width else x - 22 - 260
             top = min(max(y - 34, g.y), g.y + g.height - 80)
