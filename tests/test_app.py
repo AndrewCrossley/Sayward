@@ -61,6 +61,7 @@ def test_button_events_dispatch_separately_without_starting_recording_on_forward
     app.config = Config()
     app.last_press = {}
     app.stop_guard_at = None
+    app.state, app.issue, app.issue_busy, app.chooser = 'idle', None, False, None
     app.clear_submission()
     events=[[(8,100), (9,100), (9,100.1)],[]]
     app.desktop = SimpleNamespace(events=lambda: events.pop(0))

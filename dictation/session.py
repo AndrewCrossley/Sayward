@@ -6,6 +6,9 @@ import threading
 from .core import Engine, Recorder, TranscriptHistory
 from .punctuation import Punctuator, download_model, insertion_text, validate_words
 
+# Back-press chooser: pointer travel (X pixels) and time window that decide it.
+CHOOSER_DOWN_PX, CHOOSER_UP_PX, CHOOSER_SECONDS = 90, 40, 1.2
+
 
 class Session:
     def __init__(self, config, desktop, dispatch):
@@ -21,6 +24,9 @@ class Session:
         self.recording_target = None
         self.closed = False
         self.stop_guard_at = None
+        # Optional issue recording; a view sets an IssueRecorder when the CLI exists.
+        self.issue, self.issue_live, self.issue_busy = None, None, False
+        self.chooser = None
         self.clear_submission()
         self.idle_deadline = 0
         self.last_press = {}
@@ -44,11 +50,107 @@ class Session:
                 if pressed_at - self.last_press.get(button, 0) >= 0.3:
                     self.last_press[button] = pressed_at
                     if button == self.config.button:
+                        starting = self.state not in ("recording", "working")
                         self.toggle(allow_submit=True, pressed_at=pressed_at)
+                        if starting and self.state == "recording":
+                            self.open_chooser()
                     elif button == self.config.paste_button:
-                        self.paste_last()
+                        # Forward does nothing during a capture, so Back then Forward
+                        # is free to mean "switch this capture to issue recording".
+                        if self.state == "recording" and self.issue and not self.issue_busy:
+                            self.issue_from_capture()
+                        else:
+                            self.paste_last()
+        self.track_chooser()
         self.advance_delivery()
         return True
+
+    def open_chooser(self):
+        if not self.issue or self.issue_busy or not self.config.back_chooser:
+            return
+        try:
+            x, y = self.desktop.pointer()
+        except Exception:
+            return
+        self.chooser = (x, y, time.monotonic())
+        self.show_chooser(x, y, bool(self.issue_live))
+
+    def track_chooser(self):
+        if not self.chooser:
+            return
+        _, y0, opened = self.chooser
+        if self.state != "recording":
+            return self.close_chooser()
+        try:
+            _, y = self.desktop.pointer()
+        except Exception:
+            return self.close_chooser()
+        if y - y0 >= CHOOSER_DOWN_PX:
+            self.issue_from_capture()
+        elif y0 - y >= CHOOSER_UP_PX or time.monotonic() - opened >= CHOOSER_SECONDS:
+            self.close_chooser()
+
+    def close_chooser(self):
+        if self.chooser:
+            self.chooser = None
+            self.hide_chooser()
+
+    def issue_from_capture(self):
+        """Discard the dictation capture just started and toggle issue recording instead."""
+        self.close_chooser()
+        if not self.issue or self.issue_busy or self.state != "recording":
+            return
+        self.cancel()
+        self.issue_toggle()
+
+    def issue_toggle(self):
+        if not self.issue or self.issue_busy or self.closed:
+            return
+        stopping = bool(self.issue_live)
+        work = self.issue.stop if stopping else self.issue.start
+        self.issue_busy = True
+        self.issue_changed()
+
+        def run():
+            try:
+                value, error = work(), None
+            except Exception as exc:
+                value, error = None, str(exc)
+            if not self.closed:
+                self.dispatch(self.issue_done, stopping, value, error)
+        threading.Thread(target=run, daemon=True).start()
+
+    def issue_done(self, stopping, value, error):
+        self.issue_busy = False
+        self.refresh_issue(force=True)
+        if self.state not in ("recording", "working"):
+            if error:
+                self.set_state("error", f"Issue recording {'stop' if stopping else 'start'} failed — {error}")
+            else:
+                self.set_state("idle", "Issue bundle saved — tray: Copy issue bundle path" if stopping
+                               else "Issue recording — screen, voice and input; Back then Forward stops it")
+        return False
+
+    def refresh_issue(self, force=False):
+        if not self.issue:
+            return
+        live = self.issue.live()
+        changed = bool(live) != bool(self.issue_live)
+        self.issue_live = live
+        if changed or force:
+            self.issue_changed()
+
+    def show_chooser(self, x, y, live):
+        """Views draw the Back chooser near the pointer without taking focus."""
+
+    def hide_chooser(self):
+        """Views remove the Back chooser."""
+
+    def issue_changed(self):
+        """Views update their issue-recording indicators."""
+
+    def before_capture(self):
+        """Views release anything holding the microphone before dictation opens it."""
 
     def clear_submission(self):
         self.stop_click_at = None
@@ -98,6 +200,7 @@ class Session:
         self.stop_guard_at = None
         try:
             self.recording_target = self.desktop.focus()
+            self.before_capture()
             self.recorder.start()
         except Exception:
             self.set_state("error", "Microphone unavailable — check desktop sound input and try again")
@@ -309,6 +412,8 @@ class Session:
     def tick(self):
         if self.closed:
             return False
+        if not self.issue_busy:
+            self.refresh_issue()
         now = time.monotonic()
         if self.state == "recording" and now - self.started >= self.config.max_record_seconds:
             self.toggle(allow_submit=False)
@@ -321,6 +426,7 @@ class Session:
         if self.closed:
             return
         self.closed = True
+        self.chooser = None
         self.clear_submission()
         self.pending = None
         self.engine.stopping = True

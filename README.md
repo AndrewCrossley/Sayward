@@ -51,6 +51,15 @@ On Windows, focus the destination and press Forward for recovery; the tray offer
 
 A changed native window/control focus prevents automatic insertion; recover with Forward. Different fields within one browser/native window cannot always be distinguished, so keep the intended field focused. Applications that block clipboard insertion, games, remote desktops, Wayland and arbitrary secure fields are outside scope.
 
+## Optional issue recording (Linux X11)
+
+Sayward can drive a separate `record-issue` command (screen video + microphone + mouse/keyboard events on one clock, for showing a bug to someone fixing it). Sayward never records the screen itself, and nothing changes unless that command exists: set `"issue_recorder"` in the config to its path, or put `record-issue` on PATH, then restart Sayward. It provides `record-issue start` and `record-issue stop` and marks a live recording with `$RECORD_ISSUE_ROOT/.active` (default `~/.local/share/issue-sessions`).
+
+- Press Back as usual; dictation starts at once and a small chooser appears beside the pointer. Leave it or move up to dictate. Move the pointer down within about a second to record an issue instead: that capture is discarded and the recording starts. Back then Forward while the mic is live does the same without looking. Use the same gesture, or the tray, to stop.
+- While recording, the tray mic carries a record badge and glows with your voice, the tray item shows elapsed time, and a thin red frame marks each recorded monitor (the frame appears in the video). Dictation keeps working during a recording. Quitting Sayward does not stop a recording; the tray picks it up again on restart.
+- After stopping, tray → **Copy issue bundle path** puts the bundle folder on the clipboard.
+- Tray → **Back button shows dictate / record-issue chooser** turns the chooser off for plain dictation; the Back-then-Forward chord still works.
+
 ## Development
 
 Linux: `uv sync` (add `--extra gpu` for private NVIDIA libraries), then `uv run --no-sync python -m pytest tests -q`. GUI/OS qualification uses isolated VMs.

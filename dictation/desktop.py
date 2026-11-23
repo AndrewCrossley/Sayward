@@ -42,6 +42,10 @@ class Desktop:
         focus = self.display.get_input_focus().focus
         return getattr(focus, "id", focus)
 
+    def pointer(self):
+        reply = self.root.query_pointer()
+        return reply.root_x, reply.root_y
+
     def events(self):
         pressed = []
         while self.display.pending_events():

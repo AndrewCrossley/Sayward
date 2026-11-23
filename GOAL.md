@@ -1,4 +1,22 @@
-# Sayward — optional mouse submission
+# Sayward — optional issue recording (Linux X11)
+
+Status: active, approved by Andrew 2026-11-22 (relayed by the record-issue-session hypervisor). Sayward remains Whisper-based; any Parakeet evaluation is a later, separate measurement-only branch.
+
+Goal: on Mint X11, Andrew can start and stop a narrated issue recording (screen + voice + input, via the separate `record-issue` CLI) from the same Back button and tray he dictates with, and see while it runs that the screen and mic are live. Sayward without the CLI, and Windows, behave exactly as 0.3.1.
+
+Done when:
+1. With `record-issue` configured or on PATH, Back still starts dictation at once; a click-through chooser beside the pointer offers Dictate (up / leave it) or Record issue (move down 90 px within 1.2 s, which discards that capture and starts the recording). Back then Forward while the mic is live does the same without looking. Either gesture, or the tray, stops it.
+2. While live: a tray icon with a record badge glows with mic level, the tray item shows elapsed time and the existing no-input warning, and a thin click-through red frame marks every recorded monitor. Dictation during an issue recording works as before (the issue voice track also hears it). Recordings started or stopped from a terminal are reflected within a second; quitting Sayward does not stop a recording.
+3. A persisted tray setting turns the chooser off (mic-only Back). Without the CLI there is no chooser, chord, menu item or frame; single/double Back stop, Forward recovery and tray Start/Stop are unchanged.
+4. Deterministic regressions cover the CLI contract, chooser thresholds, chord, setting, external start/stop and unchanged gestures; a native Mint VM check covers tray, chooser, frame, concurrent capture (dictation + issue voice) and glow.
+
+Excluded: recording screen/input inside Sayward, Windows/Wayland issue recording, automatic `process`, Sayward markers in the bundle, push-to-narrate, a per-window overlay, model changes. No host installed-app or service changes; activation is Andrew's relaunch.
+
+Proof: tests/test_issue.py plus the full suite; Mint VM native observations under evidence/issue-recording/.
+
+---
+
+# Completed milestone — optional mouse submission
 
 Status: complete / frozen, 2026-11-05. Public visibility and Windows 10/Mint native gesture, recovery and lifecycle workflows are verified. Release: https://github.com/AndrewCrossley/Sayward/releases/tag/v0.3.1. The exact tested installer, checksums and qualification evidence are published and anonymously accessible; all owned test guests are retired. Windows 11 remains an explicit coverage gap. Andrew authorized public visibility and double-clicking the Back thumb recording-stop button within 0.75 seconds to paste and press Enter on Windows and Linux.
 

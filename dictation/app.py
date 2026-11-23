@@ -14,12 +14,14 @@ gi.require_version("AyatanaAppIndicator3", "0.1")
 from gi.repository import Gtk, GLib, GdkX11, AyatanaAppIndicator3
 from .core import Config, Engine, Recorder, TranscriptHistory
 from .desktop import Desktop
+from .issue import IssueRecorder, LevelMonitor, find_recorder
 from .session import Session
 from .punctuation import insertion_text, model_ready as punctuation_ready
 
 
 class App(Session):
-    def __init__(self, config):
+    def __init__(self, config, config_path=None):
+        self.config_path = config_path
         runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/tmp/dictation-{os.getuid()}"))
         runtime.mkdir(mode=0o700, exist_ok=True)
         self.lock = open(runtime / "system-dictation.lock", "a")
@@ -35,6 +37,10 @@ class App(Session):
         self.meter_level, self.meter_frame = 0.0, None
         self.recording_message = ""
         self.meter_message = None
+        recorder = find_recorder(config)
+        self.issue = IssueRecorder(recorder) if recorder else None
+        self.monitor = LevelMonitor()
+        self.chooser_window, self.border_windows = None, []
         self.indicator = AyatanaAppIndicator3.Indicator.new(
             "system-dictation", self.icon("idle"), AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS,
         )
@@ -43,6 +49,13 @@ class App(Session):
         self.status_item = self.item("Ready — Back thumb button to record", sensitive=False)
         self.toggle_item = self.item("Start recording", lambda _: self.toggle())
         self.cancel_item = self.item("Cancel recording", lambda _: self.cancel())
+        if self.issue:
+            self.issue_item = self.item("Record issue (screen + voice)", lambda _: self.issue_toggle())
+            self.bundle_item = self.item("Copy issue bundle path", lambda _: self.copy_bundle(), sensitive=False)
+            chooser = Gtk.CheckMenuItem(label="Back button shows dictate / record-issue chooser")
+            chooser.set_active(config.back_chooser)
+            chooser.connect("toggled", lambda item: self.set_back_chooser(item.get_active()))
+            self.menu.append(chooser)
         self.paste_item = self.item("Paste selected transcript (Forward)", lambda _: GLib.timeout_add(300, self.paste_last))
         self.item("Recent transcripts (last 5)", lambda _: self.open_history())
         self.item("Copy selected transcript", lambda _: self.copy_last())
@@ -66,6 +79,7 @@ class App(Session):
             GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, sig, self.quit)
         if not punctuation_ready(config.punctuation_dir):
             GLib.idle_add(self.setup_punctuation)
+        self.refresh_issue(force=True)
 
     def icon(self, state):
         return str(Path(__file__).parent.parent / "icons" / f"{state}.svg")
@@ -87,7 +101,10 @@ class App(Session):
             self.meter_frame = None
             self.meter_message = None
         self.status_item.set_label(message)
-        self.indicator.set_icon_full(self.icon(state), message)
+        if self.issue_glow():
+            self.meter_frame = None  # meter() redraws the issue glow within 100 ms
+        else:
+            self.indicator.set_icon_full(self.icon(state), message)
         self.indicator.set_title("Sayward — " + message)
         self.toggle_item.set_label("Stop and transcribe" if state == "recording" else "Retry punctuation" if self.pending else "Start recording")
         self.toggle_item.set_sensitive(state != "working")
@@ -112,9 +129,16 @@ class App(Session):
             pass
 
 
+    def issue_glow(self):
+        return bool(self.issue_live) and self.state in ("idle", "error")
+
     def meter(self):
         if self.closed:
             return False
+        if self.issue_live and self.state != "recording":
+            return self.issue_meter()
+        if self.monitor.running:
+            self.monitor.stop()
         if self.state != "recording":
             self.meter_level, self.meter_frame = 0.0, None
             return True
@@ -137,11 +161,142 @@ class App(Session):
             self.meter_message = message
         return True
 
+    def issue_meter(self):
+        """Glow with the default mic while an issue recording is live and dictation is not."""
+        if not self.monitor.running:
+            try:
+                self.monitor.start()
+            except Exception:
+                pass  # The recorder still captures; only the glow is lost.
+        now = time.monotonic()
+        quiet = self.monitor.running and now - self.monitor.last_signal >= 2
+        raw = self.monitor.level if now - self.monitor.level_updated_at < 0.4 else 0.0
+        self.meter_level = max(raw, self.meter_level * 0.72)
+        if self.issue_glow():
+            frame = min(11, round(self.meter_level * 11))
+            if frame != self.meter_frame:
+                path = Path(__file__).parent.parent / "icons" / f"issue-{frame}.svg"
+                self.indicator.set_icon_full(str(path), "Issue recording")
+                self.meter_frame = frame
+        if not self.issue_busy:
+            _, epoch, max_s = self.issue_live
+            elapsed = int(time.time() - epoch) if epoch else None
+            label = "Stop issue recording" + (f" ({elapsed // 60}:{elapsed % 60:02d})" if elapsed is not None else "")
+            if elapsed is not None and max_s and elapsed >= max_s:
+                label = "Finalize issue recording (time cap reached)"
+            elif quiet:
+                label += " — no mic input; check mute"
+            if self.issue_item.get_label() != label:
+                self.issue_item.set_label(label)
+        return True
 
+    def before_capture(self):
+        if self.monitor.running:
+            self.monitor.stop()
 
+    def issue_changed(self):
+        if self.closed or not self.issue:
+            return False
+        live, busy = bool(self.issue_live), self.issue_busy
+        self.issue_item.set_sensitive(not busy)
+        if busy:
+            self.issue_item.set_label("Finalizing issue recording…" if live else "Starting issue recording…")
+        elif not live:
+            self.issue_item.set_label("Record issue (screen + voice)")
+        self.bundle_item.set_sensitive(bool(self.issue.last_bundle))
+        if live and not self.border_windows:
+            self.show_border()
+        elif not live and self.border_windows:
+            self.hide_border()
+        if not live:
+            if self.monitor.running:
+                self.monitor.stop()
+            if self.state in ("idle", "error"):
+                self.indicator.set_icon_full(self.icon(self.state), self.status_item.get_label())
+        self.meter_frame = None
+        return False
 
+    def set_back_chooser(self, enabled):
+        self.config.back_chooser = enabled
+        if self.config_path:
+            try:
+                Config.update_file(self.config_path, back_chooser=enabled)
+            except OSError as exc:
+                self.set_state(self.state, f"Setting not saved — {exc}")
 
+    def copy_bundle(self):
+        from gi.repository import Gdk
+        if self.issue and self.issue.last_bundle:
+            cb = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            cb.set_text(self.issue.last_bundle, -1)
+            cb.store()
+            self.set_state(self.state, "Issue bundle path copied — paste it to your agent")
 
+    @staticmethod
+    def overlay(x, y, width, height):
+        """A popup that never takes focus and lets every click through."""
+        import cairo
+        window = Gtk.Window(type=Gtk.WindowType.POPUP)
+        window.set_accept_focus(False)
+        window.set_default_size(width, height)
+        window.move(x, y)
+        window.input_shape_combine_region(cairo.Region())
+        return window
+
+    @staticmethod
+    def paint(widget, css):
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css.encode())
+        widget.get_style_context().add_provider(provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+
+    def show_chooser(self, x, y, live):
+        self.hide_chooser()
+        from gi.repository import Gdk
+        try:
+            g = Gdk.Display.get_default().get_monitor_at_point(x, y).get_geometry()
+            # Beside the pointer, flipped left near the right edge, kept on its monitor.
+            left = x + 22 if x + 22 + 260 <= g.x + g.width else x - 22 - 260
+            top = min(max(y - 34, g.y), g.y + g.height - 80)
+            window = self.overlay(left, top, 1, 1)
+        except Exception:
+            return  # No click-through support: dictation simply continues.
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self.paint(window, "window { background: #1d2125; border: 1px solid #3a4148; }")
+        for text, css in (("↑  Dictate", "label { color: #f2f2f2; font-weight: bold; padding: 6px 12px; background: #2c333a; }"),
+                          ("↓  " + ("Stop issue recording" if live else "Record issue — screen + voice"),
+                           "label { color: #ff8a80; padding: 6px 12px; }")):
+            label = Gtk.Label(label=text, xalign=0)
+            self.paint(label, css)
+            box.pack_start(label, False, False, 0)
+        window.add(box)
+        window.show_all()
+        self.chooser_window = window
+
+    def hide_chooser(self):
+        if self.chooser_window:
+            self.chooser_window.destroy()
+            self.chooser_window = None
+
+    def show_border(self):
+        """Thin red frame on every monitor: the whole X screen is being recorded."""
+        from gi.repository import Gdk
+        display, edge = Gdk.Display.get_default(), 3
+        try:
+            for index in range(display.get_n_monitors()):
+                g = display.get_monitor(index).get_geometry()
+                for x, y, w, h in ((g.x, g.y, g.width, edge), (g.x, g.y + g.height - edge, g.width, edge),
+                                   (g.x, g.y, edge, g.height), (g.x + g.width - edge, g.y, edge, g.height)):
+                    strip = self.overlay(x, y, w, h)
+                    self.paint(strip, "window { background: #e5484d; }")
+                    strip.show_all()
+                    self.border_windows.append(strip)
+        except Exception:
+            self.hide_border()  # Never leave strips that could block clicks.
+
+    def hide_border(self):
+        for strip in self.border_windows:
+            strip.destroy()
+        self.border_windows = []
 
     def copy_last(self):
         from gi.repository import Gdk
@@ -288,7 +443,9 @@ class App(Session):
             "On failure, Retry punctuation (Back) recovers saved words; Forward pastes completed history.\n"
             "Discard saved unprocessed dictation clears a failed attempt. Quit clears all history.\n"
             "Dictation replaces the clipboard. Audio is temporary and speech stays local."
-        ))
+        ) + ("\n\nIssue recording: after pressing Back, move the pointer down to record the screen,\n"
+             "voice and input instead (or press Forward while the mic is live). Do the same, or use\n"
+             "the tray, to stop. A red frame shows while the screen is recorded." if self.issue else ""))
         label.set_line_wrap(True)
         label.set_xalign(0)
         box.pack_start(label, False, False, 0)
@@ -320,6 +477,12 @@ class App(Session):
         if self.closed:
             return False
         self.shutdown()
+        self.hide_chooser()
+        self.hide_border()
+        try:
+            self.monitor.stop()
+        except Exception:
+            pass
         self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.PASSIVE)
         Gtk.main_quit()
         return False
@@ -327,7 +490,7 @@ class App(Session):
 
 def main():
     config_path = Path(os.environ.get("DICTATION_CONFIG", Path.home() / ".config/system-dictation/config.json"))
-    app = App(Config.load(config_path))
+    app = App(Config.load(config_path), config_path)
     Gtk.main()
 
 
