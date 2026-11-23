@@ -30,6 +30,7 @@ class IssueRecorder:
         self.command = command
         self.root = Path(root or os.environ.get("RECORD_ISSUE_ROOT") or Path.home() / ".local/share/issue-sessions")
         self.last_bundle = None
+        self.warnings = []  # recorder health warnings from the last start
 
     def live(self):
         """(bundle_dir, started_epoch, max_seconds, mic_source) of the live recording, or None."""
@@ -58,14 +59,16 @@ class IssueRecorder:
         lines = (done.stdout + done.stderr).strip().splitlines()
         if done.returncode:
             raise RuntimeError(lines[-1] if lines else f"record-issue {action} failed ({done.returncode})")
-        return done.stdout.splitlines()
+        return done.stdout.splitlines(), done.stderr.splitlines()
 
     def start(self):
-        self._run("start", 60)
+        # A recorder that fails its health check still leaves the others running (exit 0).
+        _, errors = self._run("start", 60)
+        self.warnings = [line.removeprefix("WARNING: ") for line in errors if line.startswith("WARNING:")]
         return self.live()
 
     def stop(self):
-        for line in self._run("stop", 600):
+        for line in self._run("stop", 600)[0]:
             if line.startswith("bundle: "):
                 self.last_bundle = line[len("bundle: "):].strip()
         return self.last_bundle

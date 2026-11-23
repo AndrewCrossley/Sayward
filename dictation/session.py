@@ -127,11 +127,16 @@ class Session:
         self.issue_busy = False
         # The CLI drops .active before finalizing, and start refuses an unfinished bundle:
         # either failure means the next toggle must run stop again.
-        self.issue_unfinished = bool(error) and "not recording" not in error and (stopping or "unfinished" in error)
+        # "already recording" while .active is missing means the CLI found live recorders it can stop.
+        self.issue_unfinished = bool(error) and "not recording" not in error and (
+            stopping or "unfinished" in error or "already recording" in error)
         self.refresh_issue(force=True)
         if self.state not in ("recording", "working"):
+            warnings = [] if stopping or error else getattr(self.issue, "warnings", [])
             if error:
                 self.set_state("error", f"Issue recording {'stop' if stopping else 'start'} failed — {error}")
+            elif warnings:
+                self.set_state("error", "Issue recording started with problems — " + "; ".join(warnings))
             else:
                 self.set_state("idle", "Issue bundle saved — tray: Copy issue bundle path" if stopping
                                else "Issue recording — screen, voice and input; Back then Forward stops it")

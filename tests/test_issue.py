@@ -16,7 +16,9 @@ case "$1" in
     [ ! -f "$root/.active" ] || { echo "record-issue: already recording: $(cat "$root/.active")" >&2; exit 1; }
     d="$root/20261122-120000"; mkdir -p "$d"
     echo '{"version": 1, "epoch": 1795400000.5, "max_s": 1800}' > "$d/session.json"
-    echo "$d" > "$root/.active"; echo "recording -> $d" ;;
+    echo "$d" > "$root/.active"
+    [ ! -f "$root/warn" ] || echo "WARNING: voice recorder not running; see $d/voice.log" >&2
+    echo "recording -> $d" ;;
   stop)
     if [ ! -f "$root/.active" ]; then
       [ -f "$root/unfinished" ] || { echo "record-issue: not recording" >&2; exit 1; }
@@ -294,3 +296,34 @@ def test_nondefault_recording_source_gets_a_steady_badge_not_the_default_mic(mon
     app.indicator = SimpleNamespace(set_icon_full=lambda path, _: icons.append(path))
     app.meter()
     assert labels[-1] == "Stop issue recording (0:10)" and icons[-1].endswith("issue-6.svg")
+
+
+def test_degraded_start_is_reported_not_shown_as_healthy(app, cli):
+    script, root = cli
+    del app.issue_toggle
+    app.issue = IssueRecorder(str(script))
+    done = threading.Event()
+    original = app.issue_done
+    app.issue_done = lambda *args: (original(*args), done.set())
+    app.issue_changed = lambda: None
+    app.state = "idle"
+    (root / "warn").write_text("")
+    app.issue_toggle(); assert done.wait(10)
+    assert app.issue_live and app.state == "error" and "voice recorder not running" in app.message
+
+
+def test_lost_active_marker_makes_the_next_toggle_stop(app):
+    del app.issue_toggle
+    calls = []
+    def start():
+        calls.append("start"); raise RuntimeError("record-issue: already recording: /x (run: record-issue stop)")
+    app.issue = SimpleNamespace(live=lambda: None, start=start, stop=lambda: calls.append("stop") or "/x",
+                                last_bundle=None, warnings=[])
+    app.issue_changed = lambda: None
+    done = threading.Event()
+    original = app.issue_done
+    app.issue_done = lambda *args: (original(*args), done.set())
+    app.state = "idle"
+    app.issue_toggle(); assert done.wait(10)
+    done.clear(); app.issue_toggle(); assert done.wait(10)
+    assert calls == ["start", "stop"] and not app.issue_unfinished
