@@ -28,6 +28,10 @@ class Config:
     max_record_seconds: int = 180
     language: str = "en"
     sound: bool = True
+    # Optional issue recording (Linux X11): path to a `record-issue` CLI; empty means PATH lookup.
+    issue_recorder: str = ""
+    # With issue recording available, Back shows a dictate / record-issue chooser.
+    back_chooser: bool = True
 
     @classmethod
     def load(cls, path):
@@ -42,6 +46,24 @@ class Config:
         if cfg.idle_seconds < 1 or not 1 <= cfg.max_record_seconds <= 600:
             raise ValueError("Invalid idle or recording duration.")
         return cfg
+
+    @staticmethod
+    def update_file(path, **changes):
+        """Atomically set only the given keys, leaving the rest of the file as written."""
+        path = Path(path)
+        data = json.loads(path.read_text()) if path.exists() else {}
+        data.update(changes)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, name = tempfile.mkstemp(prefix="config-", suffix=".tmp", dir=path.parent)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as output:
+                json.dump(data, output, indent=2)
+                output.write("\n")
+                output.flush()
+                os.fsync(output.fileno())
+            os.replace(name, path)
+        finally:
+            Path(name).unlink(missing_ok=True)
 
 
 class Engine:

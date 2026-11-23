@@ -61,6 +61,7 @@ def test_button_events_dispatch_separately_without_starting_recording_on_forward
     app.config = Config()
     app.last_press = {}
     app.stop_guard_at = None
+    app.state, app.issue, app.issue_busy, app.chooser = 'idle', None, False, None
     app.clear_submission()
     events=[[(8,100), (9,100), (9,100.1)],[]]
     app.desktop = SimpleNamespace(events=lambda: events.pop(0))
@@ -84,6 +85,7 @@ def test_silent_meter_warns_and_live_input_restores_recording_status(monkeypatch
     app.meter_level, app.meter_frame, app.meter_message = 0, None, None
     app.recording_message = 'Recording — CPU model ready'
     app.practice_window = None
+    app.issue_live, app.monitor = None, SimpleNamespace(running=False)
     messages, icons = [], []
     app.status_item = SimpleNamespace(set_label=messages.append)
     app.indicator = SimpleNamespace(set_icon_full=lambda path, message: icons.append(path), set_title=lambda _: None)
